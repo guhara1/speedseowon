@@ -56,7 +56,7 @@ REVIEWS = [
          date="2026-02", rating=4,
          body="탐지 결과가 100%는 아니라고 미리 말씀해 주셨고 실제로 조금 어긋났습니다. 다만 그 범위 안이라 "
               "개구는 작게 끝났어요. 과장 없이 말해 주신 게 오히려 신뢰가 갔습니다."),
-    dict(sido="gwangju", city="seo-gwangju", where="광주 서구", service="화장실변기교체",
+    dict(sido="jeonnam-gwangju", city="seo-gwangju", where="광주 서구", service="화장실변기교체",
          date="2026-06", rating=5,
          body="변기 교체하면서 배수 중심거리가 안 맞는다고 사진으로 설명해 주셨습니다. 추가 비용도 미리 "
               "말씀하시고 동의 받고 진행하셔서 기분 상할 일이 없었습니다."),

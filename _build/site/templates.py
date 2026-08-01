@@ -180,7 +180,7 @@ HEADER = f"""
               <h4>수도권</h4>
               <a href="/area/seoul/">서울특별시 25개 구</a>
               <a href="/area/gyeonggi/">경기도 31개 시·군</a>
-              <a href="/area/incheon/">인천광역시 10개 군·구</a>
+              <a href="/area/incheon/">인천광역시 11개 군·구</a>
             </div>
             <div>
               <h4>영남권</h4>
@@ -196,9 +196,8 @@ HEADER = f"""
               <a href="/area/sejong/">세종특별자치시</a>
               <a href="/area/chungbuk/">충청북도</a>
               <a href="/area/chungnam/">충청남도</a>
-              <a href="/area/gwangju/">광주광역시</a>
               <a href="/area/jeonbuk/">전북특별자치도</a>
-              <a href="/area/jeonnam/">전라남도</a>
+              <a href="/area/jeonnam-gwangju/">전남광주통합특별시</a>
             </div>
             <div>
               <h4>강원 · 제주</h4>

@@ -17,11 +17,34 @@ from data_gus import GUS
 # 2023년 군위군 대구 편입 반영
 DAEGU["cities"].append(GUNWI)
 
+# 2026년 7월 1일 광주광역시 + 전라남도 통합 → 전남광주통합특별시 출범
+JNGJ = {
+    "slug": "jeonnam-gwangju", "name": "전남광주통합특별시", "short": "전남광주",
+    "kind": "통합특별시",
+    "water": ("전남광주통합특별시청 물관리 부서", "https://www.jeonnam.go.kr/"),
+    "arrive": 42,
+    "notice": "2026년 7월 1일 광주광역시와 전라남도가 통합해 전남광주통합특별시로 출범했습니다. "
+              "관할 27개 시·군·구는 그대로 유지되며, 본 페이지는 통합시 기준입니다.",
+    "geo": "무등산 도심권에서 지리산 산간, 영산강 평야, 다도해 해안까지 한 광역단체 안에 "
+           "있습니다. 1986년 분리 이후 40년 만에 다시 하나가 된 구역이라 도시와 농어촌의 "
+           "격차가 전국에서 가장 큰 축에 듭니다.",
+    "stock": "광주 도심 5개 구는 아파트와 원도심 주택이, 전남 22개 시·군은 농어촌 단독주택과 "
+             "산업도시 배후 주거가 중심입니다. 같은 통합시 안에서 주거 형태의 스펙트럼이 가장 넓습니다.",
+    "note": "통합으로 행정 명칭은 바뀌었지만 배관 사정은 지역별로 그대로입니다. 광주 도심권은 "
+            "상가 배수 부하와 원도심 노후관, 전남 해안은 염해 부식, 산간은 동파가 각각 중심이라 "
+            "저희는 통합 이전과 동일하게 권역별 담당 기사를 유지합니다. 옛 광주광역시·전라남도 "
+            "주소 그대로 접수하셔도 됩니다.",
+    "cities": GWANGJU["cities"] + JEONNAM["cities"],
+}
+# 광주권 5개 구는 상수도 관할이 별도라 개별 표기합니다.
+for _slug, _name, _prof in GWANGJU["cities"]:
+    _prof["water"] = ("광주 상수도사업본부", "https://www.gwangju.go.kr/waterworks")
+
 # 화면 노출 순서 (수도권 → 광역시 → 도)
 SIDO_LIST = [
     SEOUL, GYEONGGI, INCHEON,
-    BUSAN, DAEGU, GWANGJU, DAEJEON, ULSAN, SEJONG,
-    GANGWON, CHUNGBUK, CHUNGNAM, JEONBUK, JEONNAM,
+    BUSAN, DAEGU, DAEJEON, ULSAN, SEJONG,
+    GANGWON, CHUNGBUK, CHUNGNAM, JEONBUK, JNGJ,
     GYEONGBUK, GYEONGNAM, JEJU,
 ]
 
@@ -29,7 +52,7 @@ GROUPS = [
     ("수도권", ["seoul", "gyeonggi", "incheon"]),
     ("영남권", ["busan", "daegu", "ulsan", "gyeongbuk", "gyeongnam"]),
     ("충청권", ["daejeon", "sejong", "chungbuk", "chungnam"]),
-    ("호남권", ["gwangju", "jeonbuk", "jeonnam"]),
+    ("호남권", ["jeonnam-gwangju", "jeonbuk"]),
     ("강원·제주", ["gangwon", "jeju"]),
 ]
 

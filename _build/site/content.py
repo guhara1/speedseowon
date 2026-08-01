@@ -115,7 +115,7 @@ def faq_items(rec):
     p, name = rec["prof"], rec["name"]
     top = p["mix"][0][0]
     arrive = p.get("arrive")
-    water_name, water_url = rec["sido"]["water"]
+    water_name, water_url = rec["prof"].get("water") or rec["sido"]["water"]
 
     arrive_a = (
         f"{name} 도심 기준 평균 {arrive}분입니다. 다만 이 수치는 평균이고, "

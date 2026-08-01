@@ -607,7 +607,7 @@ def build_area_hub():
       <p class="eyebrow">Nationwide</p>
       <h1 class="h-sec">전국 {STAT_SIGUNGU}개 시·군·구 배관 출장</h1>
       <div class="prose">
-        <p>스피드서원은 17개 시·도, {STAT_SIGUNGU}개 시·군·구에 기사를 배치하고 있습니다.
+        <p>스피드서원은 16개 시·도, {STAT_SIGUNGU}개 시·군·구에 기사를 배치하고 있습니다.
         아래에서 시·도를 누르면 관할 구·군이 모두 펼쳐지고, 구·군을 누르면 그 지역의 건물 연식과 지형,
         자주 나오는 증상, 출동 가능한 행정동 목록까지 정리된 페이지로 이동합니다.</p>
         <p>지역 페이지를 따로 두는 이유는 단순합니다. 1990년대 초에 지어진 신도시 아파트와 1970년대 골목 다세대,
@@ -627,7 +627,7 @@ def build_area_hub():
 </main>
 """
     html = (head(f"전국 지역별 배관공사·하수구막힘 출장 | {BRAND}",
-                 f"전국 17개 시·도, {STAT_SIGUNGU}개 시·군·구 배관 출장 지역 안내. "
+                 f"전국 16개 시·도, {STAT_SIGUNGU}개 시·군·구 배관 출장 지역 안내. "
                  f"시·도를 누르면 구·군이, 구·군을 누르면 출동 가능한 행정동이 모두 나옵니다.",
                  f"{SITE}/area/", [business_ld(rv_ld), cb_ld, itemlist])
             + HEADER + body + FOOTER)
@@ -694,6 +694,7 @@ def build_sido(sido):
     <div class="sec-head">
       <p class="eyebrow">{sido['short']} 지역 출장</p>
       <h1 class="h-sec">{sido['name']} 배관공사·하수구막힘 출장</h1>
+      {f'<p class="note" style="margin-bottom:24px"><strong>행정구역 개편 안내</strong> — {sido["notice"]}</p>' if sido.get("notice") else ''}
       <div class="prose">{paras}</div>
     </div>
 
@@ -806,7 +807,7 @@ def build_city(rec):
             f'<li><a href="/area/{sido["slug"]}/{rec["slug"]}/{d}/">{d}</a></li>'
             for d in p["dongs"])
     sibs = "".join(f'<a href="/area/{sido["slug"]}/{s}/">{n}</a>' for s, n, _ in siblings(rec, 8))
-    wname, wurl = sido["water"]
+    wname, wurl = p.get("water") or sido["water"]
     arrive = p.get("arrive")
     arrive_txt = f"{arrive}<small>분</small>" if arrive else "선박<small> 일정</small>"
 
@@ -1396,6 +1397,22 @@ Sitemap: {SITE}/sitemap-area.xml
 """)
 
 
+def cleanup_stale():
+    """사이트맵에 없는 area/ 페이지(행정구역 개편 등으로 사라진 URL)를 지웁니다."""
+    import shutil
+    from urllib.parse import unquote
+    valid = {u.strip("/") for u, _, _, _ in PAGES}
+    removed = 0
+    for root, dirs, files in os.walk(os.path.join(ROOT, "area"), topdown=False):
+        if "index.html" in files:
+            rel = os.path.relpath(root, ROOT).replace(os.sep, "/")
+            if unquote(rel) not in valid:
+                shutil.rmtree(root)
+                removed += 1
+    if removed:
+        print(f"  · 개편으로 사라진 이전 페이지 {removed}개 삭제")
+
+
 def main():
     build_home()
     build_area_hub()
@@ -1408,6 +1425,7 @@ def main():
         for dong in rec["prof"]["dongs"]:
             build_dong(rec, dong)
     build_sitemaps()
+    cleanup_stale()
 
     print(f"생성 완료: {len(PAGES)}개 페이지")
     n_dong = sum(len(c["prof"]["dongs"]) for c in ALL_CITIES)

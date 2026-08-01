@@ -40,6 +40,78 @@
     Content-Type = "application/xml; charset=utf-8"
     Cache-Control = "public, max-age=3600"
 
+[[redirects]]
+  from = "/area/incheon/jung-incheon/%EC%98%81%EC%A2%85%EB%8F%99/*"
+  to = "/area/incheon/yeongjong/%EC%98%81%EC%A2%85%EB%8F%99/"
+  status = 301
+
+[[redirects]]
+  from = "/area/incheon/jung-incheon/%EC%9A%B4%EC%84%9C%EB%8F%99/*"
+  to = "/area/incheon/yeongjong/%EC%9A%B4%EC%84%9C%EB%8F%99/"
+  status = 301
+
+[[redirects]]
+  from = "/area/incheon/jung-incheon/%EC%9A%A9%EC%9C%A0%EB%8F%99/*"
+  to = "/area/incheon/yeongjong/%EC%9A%A9%EC%9C%A0%EB%8F%99/"
+  status = 301
+
+[[redirects]]
+  from = "/area/incheon/seo-incheon/%EA%B2%80%EB%8B%A8%EB%8F%99/*"
+  to = "/area/incheon/geomdan/%EA%B2%80%EB%8B%A8%EB%8F%99/"
+  status = 301
+
+[[redirects]]
+  from = "/area/incheon/seo-incheon/%EB%B6%88%EB%A1%9C%EB%8C%80%EA%B3%A1%EB%8F%99/*"
+  to = "/area/incheon/geomdan/%EB%B6%88%EB%A1%9C%EB%8C%80%EA%B3%A1%EB%8F%99/"
+  status = 301
+
+[[redirects]]
+  from = "/area/incheon/seo-incheon/%EC%9B%90%EB%8B%B9%EB%8F%99/*"
+  to = "/area/incheon/geomdan/%EC%9B%90%EB%8B%B9%EB%8F%99/"
+  status = 301
+
+[[redirects]]
+  from = "/area/incheon/seo-incheon/%EB%8B%B9%ED%95%98%EB%8F%99/*"
+  to = "/area/incheon/geomdan/%EB%8B%B9%ED%95%98%EB%8F%99/"
+  status = 301
+
+[[redirects]]
+  from = "/area/incheon/seo-incheon/%EB%A7%88%EC%A0%84%EB%8F%99/*"
+  to = "/area/incheon/geomdan/%EB%A7%88%EC%A0%84%EB%8F%99/"
+  status = 301
+
+[[redirects]]
+  from = "/area/incheon/seo-incheon/%EC%95%84%EB%9D%BC%EB%8F%99/*"
+  to = "/area/incheon/geomdan/%EC%95%84%EB%9D%BC%EB%8F%99/"
+  status = 301
+
+# 2026.7 인천 행정체제 개편: 옛 구 주소 → 새 구
+[[redirects]]
+  from = "/area/incheon/jung-incheon/*"
+  to = "/area/incheon/jemulpo/:splat"
+  status = 301
+
+[[redirects]]
+  from = "/area/incheon/dong-incheon/*"
+  to = "/area/incheon/jemulpo/:splat"
+  status = 301
+
+[[redirects]]
+  from = "/area/incheon/seo-incheon/*"
+  to = "/area/incheon/seohae/:splat"
+  status = 301
+
+# 2026.7 전남광주통합특별시 출범: 옛 시·도 주소 → 통합시
+[[redirects]]
+  from = "/area/gwangju/*"
+  to = "/area/jeonnam-gwangju/:splat"
+  status = 301
+
+[[redirects]]
+  from = "/area/jeonnam/*"
+  to = "/area/jeonnam-gwangju/:splat"
+  status = 301
+
 # 생성기 소스는 배포본에서 제외합니다.
 [[redirects]]
   from = "/_build/*"
