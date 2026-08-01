@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /search/
+Disallow: /*?
+Disallow: /_build/
+
+Sitemap: https://speedseowon.co.kr/sitemap.xml
