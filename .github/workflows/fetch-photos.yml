@@ -42,7 +42,7 @@ jobs:
           mkdir -p tools/raw
           python3 -m gdown --folder \
             "https://drive.google.com/drive/folders/11dJNqXRX1jePsz_Z9G4oGOYXqrDsYhQe" \
-            -O tools/raw --remaining-ok
+            -O tools/raw
           find tools/raw -mindepth 2 -type f -exec mv -n {} tools/raw/ \; || true
           find tools/raw -mindepth 1 -type d -empty -delete || true
           COUNT=$(find tools/raw -maxdepth 1 -type f \

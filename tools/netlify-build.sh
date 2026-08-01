@@ -26,7 +26,7 @@ python3 -m pip install --quiet --disable-pip-version-check pillow gdown || {
 echo "▶ 2/3  구글드라이브 현장사진 내려받기 (폴더 $FOLDER_ID)"
 mkdir -p "$RAW"
 if python3 -m gdown --folder "https://drive.google.com/drive/folders/${FOLDER_ID}" \
-      -O "$RAW" --remaining-ok --quiet; then
+      -O "$RAW" --quiet; then
   # gdown 이 하위 폴더를 만들면 평탄화
   find "$RAW" -mindepth 2 -type f -exec mv -n {} "$RAW"/ \; 2>/dev/null || true
   find "$RAW" -mindepth 1 -type d -empty -delete 2>/dev/null || true

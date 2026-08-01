@@ -23,7 +23,7 @@ if ! command -v gdown >/dev/null 2>&1; then
 fi
 
 echo "구글드라이브 폴더에서 원본 사진을 내려받습니다..."
-gdown --folder "https://drive.google.com/drive/folders/${FOLDER_ID}" -O "$RAW" --remaining-ok
+gdown --folder "https://drive.google.com/drive/folders/${FOLDER_ID}" -O "$RAW"
 
 # gdown 이 하위 폴더를 만들면 평탄화합니다
 find "$RAW" -mindepth 2 -type f -exec mv -n {} "$RAW"/ \; 2>/dev/null || true
