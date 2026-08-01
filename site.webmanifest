@@ -1,0 +1,17 @@
+{
+  "name": "스피드서원 — 전국 배관공사·하수구막힘",
+  "short_name": "스피드서원",
+  "description": "전국 229개 시·군·구 24시간 배관 출장. 하수구막힘·누수탐지·배관공사.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0A1929",
+  "theme_color": "#0A1929",
+  "lang": "ko",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

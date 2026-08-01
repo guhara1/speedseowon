@@ -1,0 +1,68 @@
+# ============================================================================
+# 구글드라이브 고객 현장사진 → img/*.webp 커밋
+#
+# 개발 샌드박스가 drive.google.com 을 차단해서, 인터넷이 열린 GitHub 실행 환경이
+# 대신 원본 21장을 받아 WebP(30KB 이하)로 굽고 저장소에 커밋합니다.
+# 커밋되면 Netlify 가 자동으로 재배포합니다.
+#
+# 수동 실행: GitHub → Actions → "fetch-drive-photos" → Run workflow
+# ============================================================================
+name: fetch-drive-photos
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/fetch-photos.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-photos
+  cancel-in-progress: true
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 의존성 설치
+        run: pip install --quiet gdown pillow
+
+      - name: 드라이브 폴더 다운로드
+        run: |
+          mkdir -p tools/raw
+          python3 -m gdown --folder \
+            "https://drive.google.com/drive/folders/11dJNqXRX1jePsz_Z9G4oGOYXqrDsYhQe" \
+            -O tools/raw --remaining-ok
+          find tools/raw -mindepth 2 -type f -exec mv -n {} tools/raw/ \; || true
+          find tools/raw -mindepth 1 -type d -empty -delete || true
+          COUNT=$(find tools/raw -maxdepth 1 -type f \
+            \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) | wc -l)
+          echo "다운로드: ${COUNT}장"
+          test "$COUNT" -gt 0   # 0장이면 실패 처리해 로그에서 바로 보이게
+
+      - name: WebP 변환 (30KB 이하) + HTML 재생성
+        run: |
+          python3 tools/make_images.py
+          python3 _build/build.py
+
+      - name: 커밋 & 푸시
+        run: |
+          git config user.name "speedseowon-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add img/ index.html area/ sitemap*.xml rss.xml
+          if git diff --cached --quiet; then
+            echo "변경 없음"
+          else
+            git commit -m "현장사진 반영: 드라이브 원본 → WebP 30KB (자동)"
+            git push origin "${{ github.ref_name }}"
+          fi

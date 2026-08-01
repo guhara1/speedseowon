@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="스피드서원">
+  <rect width="64" height="64" rx="14" fill="rgb(10, 25, 41)"/>
+  <path d="M32 10.5c0 0 12.5 14.2 12.5 21.5a12.5 12.5 0 0 1-25 0C19.5 24.7 32 10.5 32 10.5z"
+        fill="rgb(255, 176, 31)"/>
+  <path d="M25.5 33.5a6.5 6.5 0 0 0 6.5 6.5" fill="none" stroke="rgb(10, 25, 41)"
+        stroke-width="2.6" stroke-linecap="round" opacity=".6"/>
+  <rect x="15.5" y="49" width="33" height="5" rx="2.5" fill="rgb(0, 168, 200)"/>
+  <rect x="23" y="47.6" width="4" height="7.8" rx="1.4" fill="rgb(10, 25, 41)"/>
+  <rect x="37" y="47.6" width="4" height="7.8" rx="1.4" fill="rgb(10, 25, 41)"/>
+</svg>
