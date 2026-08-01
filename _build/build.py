@@ -789,9 +789,22 @@ def build_city(rec):
         f'<span class="track"><span class="fill" style="width:{v*2.6}%"></span></span>'
         f'<span class="pct">{v}%</span></div>' for m, v in p["mix"])
 
-    dongs = "".join(
-        f'<li><a href="/area/{sido["slug"]}/{rec["slug"]}/{d}/">{d}</a></li>'
-        for d in p["dongs"])
+    if p.get("gus"):
+        dongs = ""
+        for gu, gu_dongs in p["gus"]:
+            links = "".join(
+                f'<li><a href="/area/{sido["slug"]}/{rec["slug"]}/{d}/">{d}</a></li>'
+                for d in gu_dongs)
+            dongs += (
+                f'<ul class="dongs" style="margin-bottom:14px">'
+                f'<li><a href="/area/{sido["slug"]}/{rec["slug"]}/{gu}/" '
+                f'style="background:var(--ink-800);border-color:var(--ink-800);color:var(--white);font-weight:800">'
+                f'{gu} 전체 →</a></li>{links}</ul>')
+        dongs = f"</ul>{dongs}<ul hidden>"   # 기존 <ul class=dongs> 래퍼와 결합
+    else:
+        dongs = "".join(
+            f'<li><a href="/area/{sido["slug"]}/{rec["slug"]}/{d}/">{d}</a></li>'
+            for d in p["dongs"])
     sibs = "".join(f'<a href="/area/{sido["slug"]}/{s}/">{n}</a>' for s, n, _ in siblings(rec, 8))
     wname, wurl = sido["water"]
     arrive = p.get("arrive")
@@ -973,6 +986,163 @@ def build_city(rec):
     write(f"area/{sido['slug']}/{rec['slug']}/index.html", html, "0.7", "monthly")
 
 
+# ============================================== 일반구 페이지 (32개)
+def build_gu(rec, gu, gu_dongs):
+    p, city, sido = rec["prof"], rec["name"], rec["sido"]
+    seed = sido["slug"] + rec["slug"] + gu
+    canonical = f"{SITE}/area/{sido['slug']}/{rec['slug']}/{quote(gu)}/"
+    cb, cb_ld = crumb([("홈", "/"), ("지역별 출장", "/area/"),
+                       (sido["name"], f"/area/{sido['slug']}/"),
+                       (city, f"/area/{sido['slug']}/{rec['slug']}/"), (gu, None)])
+
+    top = p["mix"][0][0]
+    arrive = p.get("arrive")
+    when = (f"평균 {arrive}분 안팎이면 도착합니다." if arrive else "출동 일정을 사전에 조율합니다.")
+    sample = "·".join(gu_dongs[:4])
+    mn = dongpage.morpheme_note(gu.rstrip("구"), seed)
+
+    leads = [
+        f"{gu}는 {city}의 행정구로, {sample} 등 {len(gu_dongs)}개 행정동을 관할합니다. "
+        f"{city} 전체로 보면 {top} 요청이 가장 많고 {gu}도 같은 흐름입니다. {when}",
+        f"{city} {gu} 전 지역에 출동합니다. 관할 행정동은 {sample} 등 {len(gu_dongs)}곳이며, "
+        f"동 이름을 누르면 동네별 전용 안내로 이동합니다. {when}",
+        f"{gu} 어디든 같은 번호로 접수합니다. {p['stock']} {gu}의 {len(gu_dongs)}개 동도 "
+        f"이 분포 안에 있어 건물 유형부터 여쭙고 확인 순서를 잡습니다. {when}",
+    ]
+    lead_p = leads[_hgu(seed + "l", len(leads))]
+
+    paras = []
+    if mn:
+        paras.append(f"{gu}의 조건부터 보면, {mn}")
+    else:
+        paras.append(
+            f"{gu}를 이해하려면 {city} 전체를 봐야 합니다. {p['era']} "
+            f"{gu} 안에서도 동네별 준공 시기가 갈리므로, 연대를 들으면 배관 자재와 "
+            f"고장 유형을 대체로 좁힐 수 있습니다.")
+    paras.append(
+        f"{city}에서 15년간 반복 확인한 특징이 있습니다. {p['note']} "
+        f"{gu} 접수 때도 같은 기준으로 원인 구간을 좁히고, 뚫기 전에 내시경으로 관 안을 "
+        f"확인한 뒤 착수합니다. 시공 전후 영상은 동일 원인 6개월 보증의 근거로 남습니다.")
+    paras_html = "".join(f"<p>{t}</p>" for t in paras)
+
+    dong_links = "".join(
+        f'<a href="/area/{sido["slug"]}/{rec["slug"]}/{d}/">{d}</a>' for d in gu_dongs)
+    other_gus = "".join(
+        f'<a href="/area/{sido["slug"]}/{rec["slug"]}/{g}/">{g}</a>'
+        for g, _ in p.get("gus", []) if g != gu)
+
+    faq_html, faq_ld = faq_html_and_ld(dongpage.faq_items(rec, gu))
+    hero_key = pick(seed + "h", HEROES)
+    arr_txt = f"{arrive}분 안팎" if arrive else "일정 협의"
+
+    service_ld = {
+        "@context": "https://schema.org", "@type": "Service",
+        "serviceType": "배관공사·하수구막힘·누수탐지",
+        "provider": {"@id": f"{SITE}/#business"},
+        "areaServed": {"@type": "AdministrativeArea", "name": f"{sido['name']} {city} {gu}"},
+        "url": canonical,
+    }
+    itemlist = {"@context": "https://schema.org", "@type": "ItemList",
+                "name": f"{city} {gu} 출동 지역",
+                "itemListElement": [
+                    {"@type": "ListItem", "position": i + 1, "name": d,
+                     "url": f"{SITE}/area/{sido['slug']}/{rec['slug']}/{quote(d)}/"}
+                    for i, d in enumerate(gu_dongs)]}
+
+    body = f"""
+{cb}
+<main id="main">
+<section class="hero" style="padding:0">
+  <div class="wrap" style="padding-block:clamp(36px,4.5vw,60px)">
+    <div>
+      <p class="eyebrow">{sido['short']} {city} · {gu}</p>
+      <h1 class="h-display" style="font-size:clamp(27px,3.6vw,42px)">{gu} 하수구막힘·배관공사<br><em>24시간 출장</em></h1>
+      <p class="lead">{lead_p}</p>
+      <div class="hero-cta">
+        <a href="tel:{PHONE_TEL}" class="btn btn-primary btn-lg">{PHONE} 지금 접수</a>
+        <a href="/area/{sido['slug']}/{rec['slug']}/" class="btn btn-ghost">{city} 전체 안내</a>
+      </div>
+      <div class="trust">
+        <div><b>{arr_txt}</b><span>평균 도착</span></div>
+        <div><b>{len(gu_dongs)}곳</b><span>관할 행정동</span></div>
+        <div><b>6개월</b><span>재발 보증</span></div>
+        <div><b>24시간</b><span>야간·주말 접수</span></div>
+      </div>
+    </div>
+    <div class="hero-media">
+      <figure class="shot">
+        <span class="shot-tag">{sido['short']} {city} 현장</span>
+        {img_tag(hero_key, priority=True,
+                 alt=f'{sido["short"]} {city} {gu} 배관 시공 현장 — {IMAGES[hero_key][3]}')}
+        <figcaption><b>{gu} 출동</b>{city} 담당 기사가 장비를 싣고 나갑니다. 뚫기 전에 관 안을 먼저 확인합니다.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="split">
+      <div>
+        <div class="h2-block"><h2>{gu} 배관 출동 안내</h2></div>
+        <div class="prose">{paras_html}</div>
+
+        <div class="h2-block"><h2>{gu} 관할 행정동 {len(gu_dongs)}곳</h2></div>
+        <div class="prose"><p>동 이름을 누르면 그 동네 전용 안내 페이지로 이동합니다.
+          경계에 걸친 주소도 같은 기사가 출동합니다.</p></div>
+        <div class="chips" style="margin-top:20px">{dong_links}</div>
+
+        {"<div class='h2-block'><h2>" + city + " 다른 구</h2></div><div class='chips'>" + other_gus + "</div>" if other_gus else ""}
+
+        <div class="h2-block"><h2>{gu} 자주 묻는 질문</h2></div>
+        {faq_html}
+        {byline()}
+      </div>
+      <aside class="aside">
+        <div class="panel dark">
+          <h3>{gu} 24시간 접수</h3>
+          <p>증상만 말씀해 주시면 통화 4분 안에 원인 구간과 예상 비용 범위를 안내드립니다.</p>
+          <a href="tel:{PHONE_TEL}" class="callnum">{PHONE}</a>
+          <p style="font-size:13px">야간(22~06시)·공휴일 3만원 할증 · 접수 시 먼저 고지</p>
+        </div>
+        <div class="panel">
+          <h3>{city} 함께 보기</h3>
+          <ul>
+            <li><a href="/area/{sido['slug']}/{rec['slug']}/">{city} 배관공사·하수구막힘</a></li>
+            <li><a href="/area/{sido['slug']}/">{sido['name']} 전체 지역</a></li>
+            <li><a href="/price/drain-clog/">하수구막힘 비용 기준</a></li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <h2>{gu}, 지금 물이 안 내려간다면</h2>
+    <p>야간·주말도 같은 번호입니다. 출장 전에 예상 비용부터 알려 드립니다.</p>
+    <div class="hero-cta">
+      <a href="tel:{PHONE_TEL}" class="btn btn-dark btn-lg">{PHONE} 전화 접수</a>
+      <a href="/area/{sido['slug']}/{rec['slug']}/" class="btn btn-line btn-lg">{city} 전체 보기</a>
+    </div>
+  </div>
+</section>
+</main>
+"""
+    desc = (f"{sido['short']} {city} {gu} 하수구막힘·배관공사 24시간 출장. "
+            f"관할 행정동 {len(gu_dongs)}곳 전 지역 출동, 내시경 진단 후 시공, 6개월 재발 보증.")
+    html = (head(f"{gu} 하수구막힘·배관공사 출장 | {city} | {BRAND}",
+                 desc[:155], canonical, [business_ld(), cb_ld, service_ld, itemlist, faq_ld])
+            + HEADER + body + FOOTER)
+    write(f"area/{sido['slug']}/{rec['slug']}/{gu}/index.html", html, "0.6", "monthly")
+
+
+def _hgu(seed, n):
+    import hashlib as _hl
+    return int(_hl.md5(seed.encode()).hexdigest(), 16) % n
+
+
 # ============================================== 행정동 페이지 (2,800여 개)
 def build_dong(rec, dong):
     p, city, sido = rec["prof"], rec["name"], rec["sido"]
@@ -981,9 +1151,14 @@ def build_dong(rec, dong):
     url_path = f"area/{sido['slug']}/{rec['slug']}/{dong}/"
     canonical = f"{SITE}/area/{sido['slug']}/{rec['slug']}/{quote(dong)}/"
 
-    cb, cb_ld = crumb([("홈", "/"), ("지역별 출장", "/area/"),
-                       (sido["name"], f"/area/{sido['slug']}/"),
-                       (city, f"/area/{sido['slug']}/{rec['slug']}/"), (dong, None)])
+    gu = rec.get("gu_of", {}).get(dong)
+    trail = [("홈", "/"), ("지역별 출장", "/area/"),
+             (sido["name"], f"/area/{sido['slug']}/"),
+             (city, f"/area/{sido['slug']}/{rec['slug']}/")]
+    if gu:
+        trail.append((gu, f"/area/{sido['slug']}/{rec['slug']}/{gu}/"))
+    trail.append((dong, None))
+    cb, cb_ld = crumb(trail)
 
     lead_p = dongpage.lead(rec, dong)
     paras = "".join(f"<p>{t}</p>" for t in dongpage.body_paragraphs(rec, dong))
@@ -1094,6 +1269,7 @@ def build_dong(rec, dong):
         <div class="panel">
           <h3>{city} 함께 보기</h3>
           <ul>
+            {f'<li><a href="/area/{sido["slug"]}/{rec["slug"]}/{gu}/">{city} {gu} 전체</a></li>' if gu else ''}
             <li><a href="/area/{sido['slug']}/{rec['slug']}/">{city} 배관공사·하수구막힘</a></li>
             <li><a href="/area/{sido['slug']}/">{sido['name']} 전체 지역</a></li>
             <li><a href="/price/drain-clog/">하수구막힘 비용 기준</a></li>
@@ -1146,7 +1322,9 @@ def build_sitemaps():
         return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset {ns}>{rows}</urlset>'
 
     def is_dong(u):
-        return u.startswith("/area/") and u.count("/") >= 5
+        seg = u.rstrip("/").split("/")[-1]
+        return (u.startswith("/area/") and u.count("/") >= 5
+                and seg.endswith(("동", "읍", "면", "가")))
     dong = [x for x in PAGES if is_dong(x[0])]
     area = [x for x in PAGES if x[0].startswith("/area/") and not is_dong(x[0])]
     core = [x for x in PAGES if not x[0].startswith("/area/")]
@@ -1225,6 +1403,8 @@ def main():
         build_sido(sido)
     for rec in ALL_CITIES:
         build_city(rec)
+        for gu, gu_dongs in rec["prof"].get("gus", []):
+            build_gu(rec, gu, gu_dongs)
         for dong in rec["prof"]["dongs"]:
             build_dong(rec, dong)
     build_sitemaps()

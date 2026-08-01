@@ -12,6 +12,7 @@ from data_metro import BUSAN, DAEGU, GWANGJU, DAEJEON, ULSAN, SEJONG
 from data_prov1 import GANGWON, CHUNGBUK, CHUNGNAM
 from data_prov2 import JEONBUK, JEONNAM
 from data_prov3 import GYEONGBUK, GYEONGNAM, JEJU, GUNWI
+from data_gus import GUS
 
 # 2023년 군위군 대구 편입 반영
 DAEGU["cities"].append(GUNWI)
@@ -52,10 +53,19 @@ def build_index():
     for sido in SIDO_LIST:
         sido_by_slug[sido["slug"]] = sido
         for slug, name, prof in sido["cities"]:
-            prof["dongs"] = _dedupe_dongs(prof["dongs"])
+            gus = GUS.get((sido["slug"], slug))
+            if gus:
+                # 일반구 보유 시: 구 매핑이 동 목록의 원본이 됩니다.
+                gus = [(g, _dedupe_dongs(ds)) for g, ds in gus]
+                prof["gus"] = gus
+                prof["dongs"] = [d for _, ds in gus for d in ds]
+                gu_of = {d: g for g, ds in gus for d in ds}
+            else:
+                prof["dongs"] = _dedupe_dongs(prof["dongs"])
+                gu_of = {}
             rec = {
                 "slug": slug, "name": name, "prof": prof,
-                "sido": sido,
+                "sido": sido, "gu_of": gu_of,
                 "url": f"/area/{sido['slug']}/{slug}/",
             }
             city_by_key[(sido["slug"], slug)] = rec
