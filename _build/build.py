@@ -9,6 +9,7 @@
 import os
 import re
 import sys
+from urllib.parse import quote
 from datetime import date, datetime, timezone
 from email.utils import format_datetime
 
@@ -23,6 +24,7 @@ from regions import SIDO_LIST, ALL_CITIES, CITY_BY_KEY, GROUPS, SIDO_BY_SLUG, si
 import hashlib
 
 import content
+import dongpage
 import longtail
 import data_reviews
 
@@ -639,7 +641,9 @@ def build_sido(sido):
 
     blocks = ""
     for slug, cname, prof in sido["cities"]:
-        dongs = "".join(f"<li>{d}</li>" for d in prof["dongs"])
+        dongs = "".join(
+            f'<li><a href="/area/{sido["slug"]}/{slug}/{d}/">{d}</a></li>'
+            for d in prof["dongs"])
         blocks += (
             f'<details class="region">'
             f'<summary><span class="rn">{cname}</span>'
@@ -785,7 +789,9 @@ def build_city(rec):
         f'<span class="track"><span class="fill" style="width:{v*2.6}%"></span></span>'
         f'<span class="pct">{v}%</span></div>' for m, v in p["mix"])
 
-    dongs = "".join(f"<li>{d}</li>" for d in p["dongs"])
+    dongs = "".join(
+        f'<li><a href="/area/{sido["slug"]}/{rec["slug"]}/{d}/">{d}</a></li>'
+        for d in p["dongs"])
     sibs = "".join(f'<a href="/area/{sido["slug"]}/{s}/">{n}</a>' for s, n, _ in siblings(rec, 8))
     wname, wurl = sido["water"]
     arrive = p.get("arrive")
@@ -866,7 +872,7 @@ def build_city(rec):
         <p class="gal-note">모든 현장에서 시공 전후 사진과 내시경 영상을 남겨 드립니다.</p>
 
         <div class="h2-block"><h2>{name} 출동 가능 지역</h2></div>
-        <div class="prose"><p>{dong_p}</p></div>
+        <div class="prose"><p>{dong_p} 동 이름을 누르면 그 동네 전용 안내 페이지로 이동합니다.</p></div>
         <ul class="dongs" style="margin-top:20px">{dongs}</ul>
 
         <figure class="figure-wide">
@@ -967,6 +973,159 @@ def build_city(rec):
     write(f"area/{sido['slug']}/{rec['slug']}/index.html", html, "0.7", "monthly")
 
 
+# ============================================== 행정동 페이지 (2,800여 개)
+def build_dong(rec, dong):
+    p, city, sido = rec["prof"], rec["name"], rec["sido"]
+    seed = sido["slug"] + rec["slug"] + dong
+    kind, base = dongpage.classify(dong)
+    url_path = f"area/{sido['slug']}/{rec['slug']}/{dong}/"
+    canonical = f"{SITE}/area/{sido['slug']}/{rec['slug']}/{quote(dong)}/"
+
+    cb, cb_ld = crumb([("홈", "/"), ("지역별 출장", "/area/"),
+                       (sido["name"], f"/area/{sido['slug']}/"),
+                       (city, f"/area/{sido['slug']}/{rec['slug']}/"), (dong, None)])
+
+    lead_p = dongpage.lead(rec, dong)
+    paras = "".join(f"<p>{t}</p>" for t in dongpage.body_paragraphs(rec, dong))
+    faq_html, faq_ld = faq_html_and_ld(dongpage.faq_items(rec, dong))
+
+    hero_key = pick(seed + "h", HEROES)
+    wide_key = pick(seed + "w", WORKS)
+    arrive = p.get("arrive")
+    arr_txt = f"{arrive}<small>분 안팎</small>" if arrive else "선박<small> 일정 협의</small>"
+
+    # 이웃 동: 목록상 인접 6곳 (실제 생활권 인접과 가장 가깝게)
+    dongs = p["dongs"]
+    idx = dongs.index(dong)
+    neigh = []
+    step = 1
+    while len(neigh) < min(6, len(dongs) - 1):
+        for j in (idx + step, idx - step):
+            if 0 <= j < len(dongs) and dongs[j] != dong and dongs[j] not in neigh:
+                neigh.append(dongs[j])
+            if len(neigh) >= min(6, len(dongs) - 1):
+                break
+        step += 1
+        if step > len(dongs):
+            break
+    neigh_html = "".join(
+        f'<a href="/area/{sido["slug"]}/{rec["slug"]}/{n}/">{n}</a>' for n in neigh)
+
+    top = p["mix"][0][0]
+    svc = "".join(f'<a href="/service/{u}/">{dong} {t}</a>' for u, t in [
+        ("drain-clog", "하수구막힘"), ("toilet-clog", "변기막힘"),
+        ("leak-detection", "누수탐지"), ("hydro-jetting", "고압세척"),
+        ("plumbing", "배관공사"), ("faucet", "수전교체")])
+
+    service_ld = {
+        "@context": "https://schema.org", "@type": "Service",
+        "serviceType": "배관공사·하수구막힘·누수탐지",
+        "provider": {"@id": f"{SITE}/#business"},
+        "areaServed": {"@type": "AdministrativeArea",
+                       "name": f"{sido['name']} {city} {dong}"},
+        "url": canonical,
+    }
+
+    body = f"""
+{cb}
+<main id="main">
+<section class="hero" style="padding:0">
+  <div class="wrap" style="padding-block:clamp(36px,4.5vw,60px)">
+    <div>
+      <p class="eyebrow">{sido['short']} {city} · {dong}</p>
+      <h1 class="h-display" style="font-size:clamp(27px,3.6vw,42px)">{dong} 하수구막힘·배관공사<br><em>24시간 출장</em></h1>
+      <p class="lead">{lead_p}</p>
+      <div class="hero-cta">
+        <a href="tel:{PHONE_TEL}" class="btn btn-primary btn-lg">{PHONE} 지금 접수</a>
+        <a href="/area/{sido['slug']}/{rec['slug']}/" class="btn btn-ghost">{city} 전체 안내</a>
+      </div>
+      <div class="trust">
+        <div><b>{arr_txt.replace('<small>','').replace('</small>','')}</b><span>평균 도착</span></div>
+        <div><b>{top}</b><span>{city} 최다 요청</span></div>
+        <div><b>6개월</b><span>재발 보증</span></div>
+        <div><b>24시간</b><span>야간·주말 접수</span></div>
+      </div>
+    </div>
+    <div class="hero-media">
+      <figure class="shot">
+        <span class="shot-tag">{sido['short']} {city} 현장</span>
+        {img_tag(hero_key, priority=True,
+                 alt=f'{sido["short"]} {city} {dong} 배관 시공 현장 — {IMAGES[hero_key][3]}')}
+        <figcaption><b>{dong} 출동</b>{city} 담당 기사가 장비를 싣고 나갑니다. 뚫기 전에 관 안을 먼저 확인합니다.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="split">
+      <div>
+        <div class="h2-block"><h2>{dong} 배관 출동 안내</h2></div>
+        <div class="prose">{paras}</div>
+
+        <figure class="figure-wide">
+          {img_tag(wide_key, alt=f'{city} 인근 시공 기록 — {IMAGES[wide_key][3]}')}
+          <figcaption><b>{city} 인근 시공 기록</b> — {IMAGES[wide_key][3]}.
+            {dong} 현장도 같은 방식으로 전후 기록을 남깁니다.</figcaption>
+        </figure>
+
+        <div class="h2-block"><h2>{dong}에서 가능한 작업</h2></div>
+        <div class="chips">{svc}</div>
+
+        <div class="h2-block"><h2>{dong} 인근 지역</h2></div>
+        <div class="prose"><p>{city} 안에서 {dong}과 붙어 있는 구역입니다.
+          경계에 걸친 주소는 같은 기사가 출동하므로 어느 쪽 페이지를 보셔도 됩니다.</p></div>
+        <div class="chips">{neigh_html}
+          <a class="more" href="/area/{sido['slug']}/{rec['slug']}/">{city} 전체 →</a></div>
+
+        <div class="h2-block"><h2>{dong} 자주 묻는 질문</h2></div>
+        {faq_html}
+        {byline()}
+      </div>
+
+      <aside class="aside">
+        <div class="panel dark">
+          <h3>{dong} 24시간 접수</h3>
+          <p>증상만 말씀해 주시면 통화 4분 안에 원인 구간과 예상 비용 범위를 안내드립니다.</p>
+          <a href="tel:{PHONE_TEL}" class="callnum">{PHONE}</a>
+          <p style="font-size:13px">야간(22~06시)·공휴일 3만원 할증 · 접수 시 먼저 고지</p>
+        </div>
+        <div class="panel">
+          <h3>{city} 함께 보기</h3>
+          <ul>
+            <li><a href="/area/{sido['slug']}/{rec['slug']}/">{city} 배관공사·하수구막힘</a></li>
+            <li><a href="/area/{sido['slug']}/">{sido['name']} 전체 지역</a></li>
+            <li><a href="/price/drain-clog/">하수구막힘 비용 기준</a></li>
+            <li><a href="/guide/slow-drain/">물이 천천히 내려갈 때</a></li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <h2>{dong}, 지금 물이 안 내려간다면</h2>
+    <p>야간·주말도 같은 번호입니다. 출장 전에 예상 비용부터 알려 드립니다.</p>
+    <div class="hero-cta">
+      <a href="tel:{PHONE_TEL}" class="btn btn-dark btn-lg">{PHONE} 전화 접수</a>
+      <a href="/area/{sido['slug']}/{rec['slug']}/" class="btn btn-line btn-lg">{city} 다른 지역 보기</a>
+    </div>
+  </div>
+</section>
+</main>
+"""
+    desc = (f"{sido['short']} {city} {dong} 하수구막힘·배관공사·누수탐지 24시간 출장. "
+            f"내시경 진단 후 시공, 동일 원인 6개월 보증. 야간·주말 동일 번호 접수.")
+    html = (head(f"{dong} 하수구막힘·배관공사 출장 | {sido['short']} {city} | {BRAND}",
+                 desc[:155], canonical,
+                 [business_ld(), cb_ld, service_ld, faq_ld])
+            + HEADER + body + FOOTER)
+    write(url_path + "index.html", html, "0.5", "monthly")
+
+
 # ================================================================ 부가 파일
 def build_sitemaps():
     """사이트맵(이미지 포함) · RSS · robots.txt · IndexNow 키 파일."""
@@ -980,28 +1139,32 @@ def build_sitemaps():
                 img = (f"<image:image><image:loc>{SITE}/img/{hero_img}</image:loc>"
                        f"<image:title>{esc(title)}</image:title>"
                        f"<image:caption>{esc(hero_alt)}</image:caption></image:image>")
-            rows += (f"<url><loc>{SITE}{u}</loc><lastmod>{TODAY}</lastmod>"
+            rows += (f"<url><loc>{SITE}{quote(u)}</loc><lastmod>{TODAY}</lastmod>"
                      f"<changefreq>{f}</changefreq><priority>{p}</priority>{img}</url>")
         ns = ('xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'
               ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"')
         return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset {ns}>{rows}</urlset>'
 
-    area = [x for x in PAGES if x[0].startswith("/area/")]
+    def is_dong(u):
+        return u.startswith("/area/") and u.count("/") >= 5
+    dong = [x for x in PAGES if is_dong(x[0])]
+    area = [x for x in PAGES if x[0].startswith("/area/") and not is_dong(x[0])]
     core = [x for x in PAGES if not x[0].startswith("/area/")]
 
     write_raw("sitemap-area.xml", urlset(area, with_image=True))
     write_raw("sitemap-core.xml", urlset(core, with_image=True))
+    write_raw("sitemap-dong.xml", urlset(dong, with_image=False))
     write_raw("sitemap.xml",
               '<?xml version="1.0" encoding="UTF-8"?>\n'
               '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
               + "".join(f"<sitemap><loc>{SITE}/{n}</loc><lastmod>{TODAY}</lastmod></sitemap>"
-                        for n in ("sitemap-core.xml", "sitemap-area.xml"))
+                        for n in ("sitemap-core.xml", "sitemap-area.xml", "sitemap-dong.xml"))
               + "</sitemapindex>")
 
     # ---- RSS 2.0 — 네이버 서치어드바이저 'RSS 제출' 에 그대로 넣습니다.
     pub = format_datetime(datetime.now(timezone.utc))
     items = ""
-    for u, p, f, title in sorted(PAGES, key=lambda x: -float(x[1])):
+    for u, p, f, title in sorted((x for x in PAGES if not is_dong(x[0])), key=lambda x: -float(x[1])):
         items += (f"<item><title>{esc(title)}</title>"
                   f"<link>{SITE}{u}</link>"
                   f"<guid isPermaLink=\"true\">{SITE}{u}</guid>"
@@ -1062,10 +1225,13 @@ def main():
         build_sido(sido)
     for rec in ALL_CITIES:
         build_city(rec)
+        for dong in rec["prof"]["dongs"]:
+            build_dong(rec, dong)
     build_sitemaps()
 
     print(f"생성 완료: {len(PAGES)}개 페이지")
-    print(f"  · 메인 1 · 지역 허브 1 · 시·도 {len(SIDO_LIST)} · 시·군·구 {len(ALL_CITIES)}")
+    n_dong = sum(len(c["prof"]["dongs"]) for c in ALL_CITIES)
+    print(f"  · 메인 1 · 허브 1 · 시·도 {len(SIDO_LIST)} · 시·군·구 {len(ALL_CITIES)} · 행정동 {n_dong}")
     print(f"  · sitemap.xml (+core/+area, 이미지 확장 포함)")
     print(f"  · rss.xml  {len(PAGES)}개 항목  — 네이버 서치어드바이저 RSS 제출용")
     print(f"  · robots.txt (Googlebot / Yeti / NaverBot / Daumoa / bingbot 개별 허용)")

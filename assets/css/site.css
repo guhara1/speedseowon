@@ -461,10 +461,15 @@ section{padding-block:clamp(56px,7vw,104px)}
 
 /* 행정동 목록 */
 .dongs{display:flex;flex-wrap:wrap;gap:7px 8px}
-.dongs li{
-  font-size:14px;color:var(--gray-700);background:var(--white);
-  border:1px solid var(--gray-200);border-radius:var(--r-sm);padding:6px 12px;
+.dongs li{display:contents}
+.dongs a,.dongs li:not(:has(a)){
+  display:inline-flex;align-items:center;min-height:40px;
+  font-size:14px;font-weight:600;color:var(--gray-700);background:var(--white);
+  border:1px solid var(--gray-200);border-radius:var(--r-sm);padding:6px 13px;
+  transition:background .14s,color .14s,border-color .14s,transform .14s var(--ease);
 }
+.dongs a:hover{background:var(--ink-800);border-color:var(--ink-800);color:var(--white);
+               transform:translateY(-2px)}
 .dongs li.hi{border-color:var(--cyan);color:var(--ink-700);font-weight:600;
              background:rgba(0,168,200,.06)}
 
