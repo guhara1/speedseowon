@@ -24,7 +24,7 @@ STAT_SIGUNGU = 230
 # 각 도구에서 발급받은 값을 붙여넣으면 <head> 에 자동 삽입됩니다.
 # 빈 문자열이면 해당 메타태그를 아예 출력하지 않습니다(빈 값 삽입 방지).
 GOOGLE_VERIFY = ""      # Search Console → 소유권 확인 → HTML 태그 content 값
-NAVER_VERIFY = ""       # 네이버 서치어드바이저 → 사이트 소유확인 → content 값
+NAVER_VERIFY = "d5688487bf653f4e6ae3025c74f349c93640fdb7"   # 네이버 서치어드바이저 소유확인
 BING_VERIFY = ""        # Bing Webmaster Tools (IndexNow 와 별개)
 DAUM_VERIFY = ""        # 다음 검색등록 (선택)
 
