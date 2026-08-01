@@ -19,11 +19,14 @@ from config import (SITE, BRAND, OWNER, PHONE, PHONE_TEL, REVIEWED, IMAGES,
                     STAT_TOTAL_CASES, STAT_PRICE_BASE, STAT_ARRIVE_MIN,
                     STAT_SIGUNGU, OUTBOUND, RSS_TITLE, RSS_DESC, INDEXNOW_KEY,
                     HEROES, WORKS, CASES)
-from templates import head, HEADER, FOOTER, img_tag, business_ld, ld
+from templates import head, HEADER, FOOTER, img_tag, business_ld, ld, thumb_svg
 from regions import SIDO_LIST, ALL_CITIES, CITY_BY_KEY, GROUPS, SIDO_BY_SLUG, siblings
 import hashlib
 
 import content
+import data_guides
+import data_prices
+import data_services
 import dongpage
 import longtail
 import data_reviews
@@ -1303,6 +1306,413 @@ def build_dong(rec, dong):
     write(url_path + "index.html", html, "0.5", "monthly")
 
 
+# ================================================== 가이드(블로그) 렌더러
+def render_blocks(blocks):
+    out = ""
+    for kind, payload in blocks:
+        if kind == "p":
+            out += f"<p>{payload}</p>"
+        elif kind == "h2":
+            out += f'<div class="h2-block"><h2>{payload}</h2></div>'
+        elif kind == "check":
+            items = "".join(f"<li>{i}</li>" for i in payload)
+            out += f'<ul class="box-list box-check">{items}</ul>'
+        elif kind == "do":
+            items = "".join(f"<li>{i}</li>" for i in payload)
+            out += f'<div class="box-frame do"><b>직접 해도 됩니다</b><ul class="box-list">{items}</ul></div>'
+        elif kind == "dont":
+            items = "".join(f"<li>{i}</li>" for i in payload)
+            out += f'<div class="box-frame dont"><b>하지 마세요</b><ul class="box-list">{items}</ul></div>'
+        elif kind == "call":
+            out += f'<div class="box-frame callme"><b>이럴 땐 부르세요</b><p>{payload}</p></div>'
+        elif kind == "tip":
+            out += f'<p class="note">{payload}</p>'
+        elif kind == "table":
+            cap, headr, rows = payload
+            th = "".join(f"<th scope=col>{h}</th>" for h in headr)
+            trs = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>" for r in rows)
+            out += (f'<div class="tbl-wrap" style="margin:20px 0"><table class="tbl">'
+                    f"<caption>{cap}</caption><thead><tr>{th}</tr></thead><tbody>{trs}</tbody></table></div>")
+    return out
+
+
+def guide_card(g, big=False):
+    return (f'<a class="g-card{" big" if big else ""}" href="/guide/{g["slug"]}/">'
+            + thumb_svg(g["title"], f'GUIDE · {g["cat"]}', g["slug"])
+            + f'<div class="g-card-b"><div class="g-meta"><span class="g-tag">{g["cat"]}</span>'
+            f'<span>{g["date"].replace("-", ".")}</span><span>{g["minutes"]}분</span></div>'
+            f'<h3>{g["title"]}</h3><p>{g["summary"]}</p></div></a>')
+
+
+def build_guides():
+    from config import SERVICE_NAME
+    posts = data_guides.GUIDES
+    # ---- 허브(블로그 목록)
+    cb, cb_ld = crumb([("홈", "/"), ("자가진단 가이드", None)])
+    cards = "".join(guide_card(g, big=(i == 0)) for i, g in enumerate(posts))
+    itemlist = {"@context": "https://schema.org", "@type": "ItemList",
+                "name": "스피드서원 자가진단 가이드",
+                "itemListElement": [
+                    {"@type": "ListItem", "position": i + 1, "name": g["title"],
+                     "url": f"{SITE}/guide/{g['slug']}/"} for i, g in enumerate(posts)]}
+    body = f"""
+{cb}
+<main id="main">
+<section style="padding-top:8px">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Guide</p>
+      <h1 class="h-sec">자가진단 가이드</h1>
+      <p class="lead">현장에서 15년간 반복해 받은 질문들에 대한 답입니다. 부르기 전에 직접 확인할 수 있는 것과,
+      돈을 아끼는 판단 기준만 담았습니다. 글은 계속 추가됩니다.</p>
+    </div>
+    <div class="g-grid">{cards}</div>
+    {byline()}
+  </div>
+</section>
+</main>
+"""
+    html = (head(f"자가진단 가이드 — 부르기 전에 확인하세요 | {BRAND}",
+                 "하수구막힘·누수·냄새·동파. 직접 확인하는 법과 자가조치의 안전 범위, 업체를 부를 시점을 현장 경험으로 정리했습니다.",
+                 f"{SITE}/guide/", [business_ld(), cb_ld, itemlist]) + HEADER + body + FOOTER)
+    write("guide/index.html", html, "0.8", "daily")
+
+    # ---- 개별 글
+    for g in posts:
+        canonical = f"{SITE}/guide/{g['slug']}/"
+        cb, cb_ld = crumb([("홈", "/"), ("자가진단 가이드", "/guide/"), (g["title"], None)])
+        faq_html, faq_ld = faq_html_and_ld(g["faq"])
+        article_ld = {
+            "@context": "https://schema.org", "@type": "Article",
+            "headline": g["title"], "description": g["summary"],
+            "datePublished": g["date"], "dateModified": g["date"],
+            "inLanguage": "ko-KR", "mainEntityOfPage": canonical,
+            "author": {"@type": "Person", "name": OWNER,
+                       "jobTitle": "스피드서원 대표 / 배관기능사"},
+            "publisher": {"@id": f"{SITE}/#business"},
+        }
+        svc_links = "".join(
+            f'<li><a href="/service/{s}/">{SERVICE_NAME.get(s, s)} 서비스 안내</a></li>'
+            for s in g["services"] if s in SERVICE_NAME)
+        others = [x for x in posts if x["slug"] != g["slug"]][:3]
+        more = "".join(guide_card(o) for o in others)
+        body = f"""
+{cb}
+<main id="main">
+<article>
+<section style="padding-top:8px">
+  <div class="wrap">
+    <div class="split">
+      <div style="max-width:760px">
+        <div class="g-meta" style="margin-bottom:14px"><span class="g-tag">{g["cat"]}</span>
+          <span>{g["date"].replace("-", ".")}</span><span>읽는 시간 {g["minutes"]}분</span></div>
+        <h1 style="font-size:clamp(26px,3.4vw,40px);margin-bottom:16px">{g["title"]}</h1>
+        <p class="lead" style="margin-bottom:26px">{g["summary"]}</p>
+        {thumb_svg(g["title"], f'GUIDE · {g["cat"]}', g["slug"])}
+        <div class="prose" style="margin-top:34px">{render_blocks(g["body"])}</div>
+        <div class="h2-block"><h2>자주 묻는 질문</h2></div>
+        {faq_html}
+        {byline()}
+      </div>
+      <aside class="aside">
+        <div class="panel dark">
+          <h3>직접 해도 안 되면</h3>
+          <p>증상만 말씀해 주시면 통화 4분 안에 원인 구간과 예상 비용 범위를 안내드립니다.</p>
+          <a href="tel:{PHONE_TEL}" class="callnum">{PHONE}</a>
+          <p style="font-size:13px">24시간 접수 · 야간(22~06시)·공휴일 3만원 할증 사전 고지</p>
+        </div>
+        <div class="panel">
+          <h3>관련 서비스</h3>
+          <ul>{svc_links}
+            <li><a href="/price/{g["price"]}/">관련 비용 기준 보기</a></li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+    <div class="h2-block"><h2>함께 읽으면 좋은 글</h2></div>
+    <div class="g-grid">{more}</div>
+  </div>
+</section>
+</article>
+</main>
+"""
+        html = (head(f"{g['title']} | {BRAND} 가이드", g["summary"][:155], canonical,
+                     [business_ld(), cb_ld, article_ld, faq_ld]) + HEADER + body + FOOTER)
+        write(f"guide/{g['slug']}/index.html", html, "0.7", "monthly")
+
+
+# ================================================== 서비스 상세 + 허브
+def build_services():
+    from config import SERVICE_NAME, SERVICES
+    guides_by_slug = {g["slug"]: g for g in data_guides.GUIDES}
+
+    # ---- 허브
+    cb, cb_ld = crumb([("홈", "/"), ("서비스", None)])
+    groups = {}
+    for slug, name, cat in SERVICES:
+        groups.setdefault(cat, []).append((slug, name))
+    blocks = ""
+    for cat, items in groups.items():
+        cards = "".join(
+            f'<a class="svc-tile" href="/service/{s}/"><b>{n}</b>'
+            f'<span>{data_services.SERVICES_DETAIL[s]["lead"].split(".")[0]}.</span></a>'
+            for s, n in items if s in data_services.SERVICES_DETAIL)
+        blocks += f'<div class="h2-block"><h2>{cat}</h2></div><div class="svc-tiles">{cards}</div>'
+    body = f"""
+{cb}
+<main id="main">
+<section style="padding-top:8px">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Services</p>
+      <h1 class="h-sec">서비스 전체</h1>
+      <p class="lead">막힘·누수·교체·공사 네 갈래입니다. 항목마다 비용 구간과 작업 순서, 자가조치 범위까지
+      상세 페이지에 그대로 적어 두었습니다.</p>
+    </div>
+    {blocks}
+    {byline()}
+  </div>
+</section>
+</main>
+"""
+    html = (head(f"배관 서비스 전체 — 비용·작업순서 공개 | {BRAND}",
+                 "하수구막힘·누수탐지·수전교체·고압세척까지 27개 서비스의 비용 구간과 작업 순서를 공개합니다.",
+                 f"{SITE}/service/", [business_ld(), cb_ld]) + HEADER + body + FOOTER)
+    write("service/index.html", html, "0.9", "weekly")
+
+    # ---- 상세 27개
+    for slug, d in data_services.SERVICES_DETAIL.items():
+        canonical = f"{SITE}/service/{slug}/"
+        cb, cb_ld = crumb([("홈", "/"), ("서비스", "/service/"), (d["name"], None)])
+        faq_html, faq_ld = faq_html_and_ld(d["faq"])
+        rv_html, rv_ld = reviews_block(n=3, heading=f"{d['name']} 관련 후기")
+
+        service_ld = {
+            "@context": "https://schema.org", "@type": "Service",
+            "name": d["name"], "serviceType": d["name"],
+            "provider": {"@id": f"{SITE}/#business"}, "url": canonical,
+            "areaServed": {"@type": "Country", "name": "대한민국"},
+        }
+        if d["base"] not in (None, "현장 견적", "라인 견적", "구간당 300,000 ~", "150,000 ~"):
+            try:
+                lo = d["base"].split("~")[0].strip().replace(",", "")
+                hi = d["ext"].split("~")[-1].strip().replace(",", "") or None
+                if lo.isdigit():
+                    spec = {"@type": "PriceSpecification", "minPrice": lo, "priceCurrency": "KRW"}
+                    if hi and hi.isdigit():
+                        spec["maxPrice"] = hi
+                    service_ld["offers"] = {"@type": "Offer", "priceCurrency": "KRW",
+                                            "priceSpecification": spec}
+            except Exception:
+                pass
+
+        symptoms = "".join(f"<li>{x}</li>" for x in d["symptoms"])
+        causes = "".join(f'<div class="cause"><b>{c}</b><p>{t}</p></div>' for c, t in d["causes"])
+        steps = "".join(f"<li><b>{t}</b><p>{x}</p></li>" for t, x in d["steps"])
+        do = "".join(f"<li>{x}</li>" for x in d["diy"])
+        dont = "".join(f"<li>{x}</li>" for x in d["limit"])
+        rel = "".join(
+            f'<a href="/service/{r}/">{SERVICE_NAME.get(r, r)}</a>'
+            for r in d["related"] if r in SERVICE_NAME)
+        gcards = "".join(guide_card(guides_by_slug[gs]) for gs in d["guides"] if gs in guides_by_slug)
+        hero_key = pick("svc" + slug, HEROES)
+
+        body = f"""
+{cb}
+<main id="main">
+<section class="hero" style="padding:0">
+  <div class="wrap" style="padding-block:clamp(36px,4.5vw,60px)">
+    <div>
+      <p class="eyebrow">{d["cat"]} · 전국 24시간</p>
+      <h1 class="h-display" style="font-size:clamp(28px,3.8vw,46px)">{d["name"]}<br><em>원인 진단부터 시공까지</em></h1>
+      <p class="lead">{d["lead"]}</p>
+      <div class="hero-cta">
+        <a href="tel:{PHONE_TEL}" class="btn btn-primary btn-lg">{PHONE} 지금 접수</a>
+        <a href="/price/{d["price"]}/" class="btn btn-ghost">비용 기준 보기</a>
+      </div>
+      <div class="trust">
+        <div><b>{d["time"]}</b><span>통상 소요</span></div>
+        <div><b>6개월</b><span>동일 원인 보증</span></div>
+        <div><b>사전 고지</b><span>유선 견적·할증</span></div>
+        <div><b>영상 기록</b><span>시공 전후 제공</span></div>
+      </div>
+    </div>
+    <div class="hero-media">
+      <figure class="shot">
+        <span class="shot-tag">FIELD RECORD</span>
+        {img_tag(hero_key, priority=True, alt=f'{d["name"]} 시공 현장 — {IMAGES[hero_key][3]}')}
+        <figcaption><b>{d["name"]} 현장</b>뚫기 전에 관 안을 먼저 확인하고, 시공 전후를 기록으로 남깁니다.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="split">
+      <div>
+        <div class="h2-block"><h2>이 증상이면 {d["name"]} 입니다</h2></div>
+        <ul class="box-list box-check">{symptoms}</ul>
+
+        <div class="h2-block"><h2>왜 생기는가 — 현장에서 본 원인</h2></div>
+        <div class="causes">{causes}</div>
+
+        <div class="h2-block"><h2>저희가 하는 작업 순서</h2></div>
+        <ol class="step-list">{steps}</ol>
+
+        <div class="h2-block"><h2>비용은 이렇게 나옵니다</h2></div>
+        <div class="tbl-wrap"><table class="tbl">
+          <caption>단위: 원(부가세 별도) · 출장비 포함 · 야간·공휴일 3만원 할증</caption>
+          <thead><tr><th scope=col>구간</th><th scope=col>금액</th></tr></thead>
+          <tbody>
+            <tr><th scope=row>기본 구간</th><td class="num">{d["base"]}</td></tr>
+            <tr><th scope=row>확장 구간</th><td class="num">{d["ext"]}</td></tr>
+          </tbody></table></div>
+        <p class="note"><strong>구간이 올라가는 경우</strong> — {d["cost_note"]}
+          <a href="/price/{d["price"]}/" style="font-weight:700">비용 상세 기준 →</a></p>
+
+        <div class="h2-block"><h2>직접 해볼 수 있는 범위와 한계</h2></div>
+        <div class="box-frame do"><b>직접 해도 됩니다</b><ul class="box-list">{do}</ul></div>
+        <div class="box-frame dont"><b>여기부터는 부르세요</b><ul class="box-list">{dont}</ul></div>
+
+        <div class="h2-block"><h2>자주 묻는 질문</h2></div>
+        {faq_html}
+
+        <div class="h2-block"><h2>관련 서비스</h2></div>
+        <div class="chips">{rel}</div>
+        {byline()}
+      </div>
+      <aside class="aside">
+        <div class="panel dark">
+          <h3>{d["name"]} 24시간 접수</h3>
+          <p>증상만 말씀해 주시면 기본/확장 어느 구간인지 통화에서 안내드립니다.</p>
+          <a href="tel:{PHONE_TEL}" class="callnum">{PHONE}</a>
+          <p style="font-size:13px">미동의 시 출장비 3만원만 정산 철수</p>
+        </div>
+        <div class="panel">
+          <h3>출장 가능 지역</h3>
+          <ul>
+            <li><a href="/area/seoul/">서울 25개 구</a></li>
+            <li><a href="/area/gyeonggi/">경기 31개 시·군</a></li>
+            <li><a href="/area/incheon/">인천 11개 군·구</a></li>
+            <li><a href="/area/">전국 {STAT_SIGUNGU}개 시·군·구 전체</a></li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+    {f'<div class="h2-block"><h2>부르기 전에 읽어보세요</h2></div><div class="g-grid">{gcards}</div>' if gcards else ''}
+  </div>
+</section>
+
+<section class="bg-tint"><div class="wrap">{rv_html}</div></section>
+
+<section class="final">
+  <div class="wrap">
+    <h2>{d["name"]}, 지금 필요하다면</h2>
+    <p>통화 4분이면 원인 구간과 예상 비용까지 나옵니다. 야간·주말도 같은 번호입니다.</p>
+    <div class="hero-cta">
+      <a href="tel:{PHONE_TEL}" class="btn btn-dark btn-lg">{PHONE} 전화 접수</a>
+      <a href="/area/" class="btn btn-line btn-lg">우리 지역 확인</a>
+    </div>
+  </div>
+</section>
+</main>
+"""
+        desc = d["lead"][:155]
+        html = (head(f"{d['name']} — 비용·작업순서·자가조치 범위 | {BRAND}", desc, canonical,
+                     [business_ld(rv_ld), cb_ld, service_ld, faq_ld]) + HEADER + body + FOOTER)
+        write(f"service/{slug}/index.html", html, "0.9", "monthly")
+
+
+# ================================================== 비용 페이지
+def build_prices():
+    from config import SERVICE_NAME
+    cb, cb_ld = crumb([("홈", "/"), ("비용·견적", None)])
+    rows = "".join(
+        f'<a class="svc-tile" href="/price/{k}/"><b>{v["name"]}</b>'
+        f'<span>{(v["base"][0] + " 부터" ) if v["base"] else "산정 기준 공개"}</span></a>'
+        for k, v in data_prices.PRICES.items())
+    body = f"""
+{cb}
+<main id="main">
+<section style="padding-top:8px">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Pricing</p>
+      <h1 class="h-sec">비용·견적</h1>
+      <p class="lead">최저가를 뽑아 광고하지 않습니다. 실제 청구 금액의 중간 구간과, 금액이 올라가는 조건을
+      항목별로 그대로 공개합니다.</p>
+    </div>
+    <div class="svc-tiles">{rows}</div>
+    {byline()}
+  </div>
+</section>
+</main>
+"""
+    html = (head(f"배관 비용·견적 기준 공개 | {BRAND}",
+                 "하수구막힘·변기막힘·누수탐지·고압세척 비용 구간과 견적 산정 기준, 야간 할증까지 전부 공개합니다.",
+                 f"{SITE}/price/", [business_ld(), cb_ld]) + HEADER + body + FOOTER)
+    write("price/index.html", html, "0.9", "weekly")
+
+    for k, v in data_prices.PRICES.items():
+        canonical = f"{SITE}/price/{k}/"
+        cb, cb_ld = crumb([("홈", "/"), ("비용·견적", "/price/"), (v["name"], None)])
+        faq_html, faq_ld = faq_html_and_ld(v["faq"])
+        factors = "".join(f"<li>{x}</li>" for x in v["factors"])
+        price_tbl = ""
+        if v["base"]:
+            price_tbl = f"""
+        <div class="tbl-wrap"><table class="tbl">
+          <caption>단위: 원(부가세 별도) · 출장비 포함</caption>
+          <thead><tr><th scope=col>구간</th><th scope=col>금액</th><th scope=col>포함 범위</th></tr></thead>
+          <tbody>
+            <tr><th scope=row>기본</th><td class="num">{v["base"][0]}</td><td>{v["base"][1]}</td></tr>
+            <tr><th scope=row>확장</th><td class="num">{v["ext"][0]}</td><td>{v["ext"][1]}</td></tr>
+          </tbody></table></div>"""
+        svc_link = (f'<li><a href="/service/{v["svc"]}/">{SERVICE_NAME.get(v["svc"], "")} 서비스 안내</a></li>'
+                    if v.get("svc") else "")
+        body = f"""
+{cb}
+<main id="main">
+<section style="padding-top:8px">
+  <div class="wrap">
+    <div class="split">
+      <div>
+        <p class="eyebrow">Pricing</p>
+        <h1 style="font-size:clamp(26px,3.4vw,40px);margin-bottom:16px">{v["name"]}</h1>
+        {price_tbl}
+        <div class="h2-block"><h2>{'금액이 정해지는 기준' if v["base"] else '운영 원칙'}</h2></div>
+        <ul class="box-list box-check">{factors}</ul>
+        <p class="note">{v["note"]}</p>
+        <div class="h2-block"><h2>자주 묻는 질문</h2></div>
+        {faq_html}
+        {byline()}
+      </div>
+      <aside class="aside">
+        <div class="panel dark">
+          <h3>유선 견적 먼저</h3>
+          <p>증상을 들으면 기본/확장 어느 구간인지 통화에서 안내드립니다. 도착 후 통보는 하지 않습니다.</p>
+          <a href="tel:{PHONE_TEL}" class="callnum">{PHONE}</a>
+        </div>
+        <div class="panel">
+          <h3>함께 보기</h3>
+          <ul>{svc_link}
+            <li><a href="/price/how-we-quote/">견적 산정 기준 공개</a></li>
+            <li><a href="/price/night-surcharge/">야간·공휴일 할증 안내</a></li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+</main>
+"""
+        html = (head(f"{v['name']} — 구간과 기준 공개 | {BRAND}",
+                     f"{v['name']}: 기본·확장 구간과 금액이 올라가는 조건을 그대로 공개합니다. 유선 견적 후 방문, 미동의 시 출장비만 정산.",
+                     canonical, [business_ld(), cb_ld, faq_ld]) + HEADER + body + FOOTER)
+        write(f"price/{k}/index.html", html, "0.8", "monthly")
+
+
 # ================================================================ 부가 파일
 def build_sitemaps():
     """사이트맵(이미지 포함) · RSS · robots.txt · IndexNow 키 파일."""
@@ -1416,6 +1826,9 @@ def cleanup_stale():
 
 def main():
     build_home()
+    build_guides()
+    build_services()
+    build_prices()
     build_area_hub()
     for sido in SIDO_LIST:
         build_sido(sido)

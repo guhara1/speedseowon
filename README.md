@@ -1,14 +1,18 @@
 # 스피드서원 — 전국 지역 배관 웹사이트
 
-전국 16개 시·도 / 230개 시·군·구 / 일반구 32개 / **행정동 2,823개 개별 페이지**를 가진 정적 사이트입니다(총 3,103페이지).
+전국 16개 시·도 / 230개 시·군·구 / 일반구 32개 / **행정동 2,823개 개별 페이지** +
+**가이드 9편 · 서비스 27개 · 비용 11개**를 가진 정적 사이트입니다(총 **3,153페이지**).
 `_build/` 의 생성기가 저장소 루트에 HTML을 출력합니다.
 
 배포: **https://speedseowon.netlify.app/** (Netlify, `netlify.toml` 로 루트 발행)
 
 ```
-python3 _build/build.py      # 248개 페이지 + sitemap + robots.txt 생성
+python3 _build/build.py      # 3,153개 페이지 + sitemap + robots.txt 생성
 python3 tools/make_images.py # 이미지 슬롯 생성/갱신 (WebP 30KB 이하)
 ```
+
+> ✍️ **매일 글 쓰는 법은 [WRITING.md](WRITING.md)** — `data_guides.py` 에 dict 하나 추가 →
+> 빌드 → push 하면 글·목록·RSS·사이트맵·스키마가 전부 자동으로 만들어집니다.
 
 ---
 
@@ -148,7 +152,7 @@ E-E-A-T 신호가 더 강해집니다.
 
 ## 5. 구조화 데이터 (스키마)
 
-248개 **전 페이지**에 적용했습니다.
+**전 페이지**에 적용했습니다.
 
 | 스키마 | 적용 |
 |---|---|
@@ -233,7 +237,7 @@ bash tools/import-drive-photos.sh   # 차단 없는 PC에서
 | 파일 | 용도 |
 |---|---|
 | `sitemap.xml` → `sitemap-core.xml` / `sitemap-area.xml` | 이미지 확장 포함 |
-| `rss.xml` (248항목) | 네이버 서치어드바이저 RSS 제출용 |
+| `rss.xml` (330항목 — 행정동 제외 상위 페이지) | 네이버 서치어드바이저 RSS 제출용 |
 | `robots.txt` | Googlebot·Yeti·NaverBot·Daumoa·bingbot 개별 허용, 크롤 지연 없음 |
 | `<INDEXNOW_KEY>.txt` | IndexNow 소유 확인 |
 
@@ -286,12 +290,24 @@ python3 tools/indexnow.py    # Bing·Naver·Yandex 에 248개 URL 즉시 통보
 
 ---
 
-## 9. 아직 안 만든 페이지
+## 9. 콘텐츠 축 — 가이드 · 서비스 · 비용
 
-지역 축은 전부 완성됐고, 아래는 링크만 걸려 있는 상태입니다.
+지역 축에 이어 콘텐츠 축도 만들어져 있습니다.
 
-`/service/*` · `/price/*` · `/case/*` · `/guide/*` · `/about/*` ·
-`/review/` · `/contact/` · `/privacy/` · `/terms/`
+| 축 | 페이지 | 데이터 원본 |
+|---|---|---|
+| `/guide/` + 9편 | 자가진단 가이드 (블로그) | `_build/site/data_guides.py` |
+| `/service/` + 27개 | 서비스 상세 (증상→원인→작업순서→비용) | `_build/site/data_services.py` |
+| `/price/` + 10개 | 비용 기준 공개 (기본/확장 + 변수 + FAQ) | `_build/site/data_prices.py` |
 
-SEO 설계서 §8의 권장 순서에 따라 서비스 → 비용 → 가이드 → 사례 순으로
-붙이면 됩니다. 생성기 구조는 그대로 재사용할 수 있습니다.
+- **썸네일은 인라인 SVG 텍스트 이미지**입니다(`templates.py` 의 `thumb_svg()`).
+  래스터 이미지가 아니라서 용량 0KB, 페이지 웹폰트(Pretendard)를 그대로 상속합니다.
+- 가이드는 `Article` + `FAQPage`, 서비스는 `Service` + `PriceSpecification` 스키마가 나갑니다.
+- 세 축이 서로 링크됩니다: 가이드 → 관련 서비스/비용, 서비스 → 관련 가이드/비용, 지역 페이지의
+  롱테일 링크 → 세 축 전부.
+- **새 글 추가는 [WRITING.md](WRITING.md)** 순서대로. 코드 수정 없이 데이터 파일만 만지면 됩니다.
+
+### 아직 안 만든 페이지
+
+`/case/*`(시공사례 8) · `/about/*`(회사소개 4) · `/review/` · `/contact/` · `/privacy/` · `/terms/`
+는 링크만 걸려 있습니다. 생성기 구조는 그대로 재사용할 수 있습니다.

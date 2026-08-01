@@ -1,92 +1,31 @@
-# -*- coding: utf-8 -*-
-"""공통 HTML 셸 (head / 헤더 / 푸터 / 스크립트)."""
-import json
-
-from config import (SITE, BRAND, OWNER, PHONE, PHONE_TEL, PHONE_E164, EMAIL,
-                    BIZ_NO, LICENSE_NO, ADDRESS, IMAGES, REVIEWED,
-                    STAT_TOTAL_CASES, STAT_SIGUNGU, RSS_TITLE,
-                    GOOGLE_VERIFY, NAVER_VERIFY, BING_VERIFY, DAUM_VERIFY)
-
-
-def verify_tags():
-    """소유권 확인 메타태그 — 값이 있을 때만 출력합니다."""
-    pairs = [("google-site-verification", GOOGLE_VERIFY),
-             ("naver-site-verification", NAVER_VERIFY),
-             ("msvalidate.01", BING_VERIFY),
-             ("daum-site-verification", DAUM_VERIFY)]
-    return "".join(f'<meta name="{k}" content="{v}">\n' for k, v in pairs if v)
-
-
-def img_tag(key, cls="", sizes=None, priority=False, alt=None):
-    f, w, h, a = IMAGES[key]
-    return (f'<img src="/img/{f}" width="{w}" height="{h}" alt="{alt or a}"'
-            f'{" class=" + chr(34) + cls + chr(34) if cls else ""}'
-            f'{" fetchpriority=" + chr(34) + "high" + chr(34) if priority else ""}'
-            f' loading="{"eager" if priority else "lazy"}" decoding="async">')
-
-
-def ld(obj):
-    return ('<script type="application/ld+json">'
-            + json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
-            + "</script>")
-
-
-def business_ld(rating=None):
-    """rating: {'aggregateRating':…, 'review':[…]} 를 넘기면 같은 노드에 합칩니다.
-    (@id 가 같은 노드를 두 번 내보내면 파서가 어느 쪽을 쓸지 모호해집니다)"""
-    node = {
-        "@context": "https://schema.org", "@type": "Plumber",
-        "@id": f"{SITE}/#business", "name": BRAND,
-        "url": SITE + "/", "logo": f"{SITE}/img/{IMAGES['author'][0]}",
-        "image": [f"{SITE}/img/{IMAGES['og'][0]}"]
-                 + [f"{SITE}/img/{IMAGES[k][0]}" for k in ("hero1", "hero2", "case1")],
-        "description": "전국 24시간 배관공사·하수구막힘·누수탐지 전문. 내시경 관로조사 기반 원인 진단과 고압세척 시공.",
-        "telephone": PHONE_E164, "priceRange": "₩₩", "foundingDate": "2011-04-01",
-        "address": {"@type": "PostalAddress", "streetAddress": "○○로 00, 3층",
-                    "addressLocality": "수원시 팔달구", "addressRegion": "경기도",
-                    "postalCode": "16000", "addressCountry": "KR"},
-        "openingHoursSpecification": [{
-            "@type": "OpeningHoursSpecification",
-            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-            "opens": "00:00", "closes": "23:59"}],
-        "founder": {"@type": "Person", "name": OWNER, "jobTitle": "대표 / 배관기능사"},
-        "email": EMAIL,
-    }
-    if rating:
-        node.update(rating)
-    return node
-
-
-def head(title, desc, canonical, extra_ld=None, og_image=None, robots=None):
-    ogimg = og_image or f"{SITE}/img/{IMAGES['og'][0]}"
-    blocks = "".join(ld(o) for o in (extra_ld or []))
-    return f"""<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>{title}</title>
-<meta name="description" content="{desc}">
-<link rel="canonical" href="{canonical}">
-<meta name="robots" content="{robots or 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'}">
-<meta name="googlebot" content="{robots or 'index,follow,max-image-preview:large,max-snippet:-1'}">
+<title>견적 산정 기준 공개 — 구간과 기준 공개 | 스피드서원</title>
+<meta name="description" content="견적 산정 기준 공개: 기본·확장 구간과 금액이 올라가는 조건을 그대로 공개합니다. 유선 견적 후 방문, 미동의 시 출장비만 정산.">
+<link rel="canonical" href="https://speedseowon.netlify.app/price/how-we-quote/">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+<meta name="googlebot" content="index,follow,max-image-preview:large,max-snippet:-1">
 <meta name="NaverBot" content="All">
 <meta name="Yeti" content="All">
-<meta name="author" content="{OWNER} · {BRAND} 대표 / 배관기능사">
+<meta name="author" content="서원배 · 스피드서원 대표 / 배관기능사">
 <meta name="theme-color" content="#0A1929">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-{verify_tags()}<link rel="alternate" type="application/rss+xml" title="{RSS_TITLE}" href="{SITE}/rss.xml">
-<link rel="sitemap" type="application/xml" href="{SITE}/sitemap.xml">
+<meta name="naver-site-verification" content="d5688487bf653f4e6ae3025c74f349c93640fdb7">
+<link rel="alternate" type="application/rss+xml" title="스피드서원 — 전국 배관공사·하수구막힘" href="https://speedseowon.netlify.app/rss.xml">
+<link rel="sitemap" type="application/xml" href="https://speedseowon.netlify.app/sitemap.xml">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="{BRAND}">
+<meta property="og:site_name" content="스피드서원">
 <meta property="og:locale" content="ko_KR">
-<meta property="og:title" content="{title}">
-<meta property="og:description" content="{desc}">
-<meta property="og:url" content="{canonical}">
-<meta property="og:image" content="{ogimg}">
+<meta property="og:title" content="견적 산정 기준 공개 — 구간과 기준 공개 | 스피드서원">
+<meta property="og:description" content="견적 산정 기준 공개: 기본·확장 구간과 금액이 올라가는 조건을 그대로 공개합니다. 유선 견적 후 방문, 미동의 시 출장비만 정산.">
+<meta property="og:url" content="https://speedseowon.netlify.app/price/how-we-quote/">
+<meta property="og:image" content="https://speedseowon.netlify.app/img/og-speedseowon-1200x630.webp">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -95,14 +34,11 @@ def head(title, desc, canonical, extra_ld=None, og_image=None, robots=None):
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="/assets/css/site.css">
-{blocks}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Plumber","@id":"https://speedseowon.netlify.app/#business","name":"스피드서원","url":"https://speedseowon.netlify.app/","logo":"https://speedseowon.netlify.app/img/seo-wonbae-field-portrait.webp","image":["https://speedseowon.netlify.app/img/og-speedseowon-1200x630.webp","https://speedseowon.netlify.app/img/field-endoscope-pipe-inspection.webp","https://speedseowon.netlify.app/img/field-hydro-jetting-sewer.webp","https://speedseowon.netlify.app/img/case-villa-sewer-backflow.webp"],"description":"전국 24시간 배관공사·하수구막힘·누수탐지 전문. 내시경 관로조사 기반 원인 진단과 고압세척 시공.","telephone":"+82-10-5183-4300","priceRange":"₩₩","foundingDate":"2011-04-01","address":{"@type":"PostalAddress","streetAddress":"○○로 00, 3층","addressLocality":"수원시 팔달구","addressRegion":"경기도","postalCode":"16000","addressCountry":"KR"},"openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],"opens":"00:00","closes":"23:59"}],"founder":{"@type":"Person","name":"서원배","jobTitle":"대표 / 배관기능사"},"email":"help@speedseowon.co.kr"}</script><script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"홈","item":"https://speedseowon.netlify.app/"},{"@type":"ListItem","position":2,"name":"비용·견적","item":"https://speedseowon.netlify.app/price/"},{"@type":"ListItem","position":3,"name":"견적 산정 기준 공개","item":"https://speedseowon.netlify.app"}]}</script><script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"왜 '무료 견적'이 아니죠?","acceptedAnswer":{"@type":"Answer","text":"출장 자체가 비용이기 때문입니다. 출장비를 정직하게 받고, 견적 거절 시 그것만 정산하는 구조가 도착 후 큰 작업을 유도하는 구조보다 소비자에게 안전하다고 믿습니다."}},{"@type":"Question","name":"현장에서 금액이 늘어난 사례는 없나요?","acceptedAnswer":{"@type":"Answer","text":"있습니다. 다만 '작업 전 중단·설명·동의'를 거치므로 통보식 증액은 없습니다. 동의 없는 작업은 하지 않습니다."}},{"@type":"Question","name":"카드 결제 되나요?","acceptedAnswer":{"@type":"Answer","text":"됩니다. 현금영수증·세금계산서도 발행합니다."}}]}</script>
 </head>
 <body>
 <a class="skip" href="#main">본문 바로가기</a>
-"""
 
-
-HEADER = f"""
 <div class="utilbar">
   <div class="wrap">
     <span class="status"><span class="pulse" aria-hidden="true"></span>지금 접수 가능 · 전국 24시간 야간·주말 출동</span>
@@ -117,7 +53,7 @@ HEADER = f"""
 
 <header class="header">
   <div class="wrap">
-    <a href="/" class="logo" aria-label="{BRAND} 홈">스피드<b>서원</b><span>SINCE 2011</span></a>
+    <a href="/" class="logo" aria-label="스피드서원 홈">스피드<b>서원</b><span>SINCE 2011</span></a>
     <button class="burger" id="burger" aria-label="전체 메뉴 열기" aria-expanded="false" aria-controls="gnb">
       <i></i><i></i><i></i>
     </button>
@@ -207,7 +143,7 @@ HEADER = f"""
           </div>
           <div class="mega-foot">
             <span>시·도를 누르면 관할 구·군이, 구·군을 누르면 출동 가능한 행정동이 모두 나옵니다.</span>
-            <a href="/area/">전국 {STAT_SIGUNGU}개 시·군·구 보기 →</a>
+            <a href="/area/">전국 230개 시·군·구 보기 →</a>
           </div>
         </div>
       </li>
@@ -260,7 +196,7 @@ HEADER = f"""
       <li>
         <a href="/about/" aria-haspopup="true">회사소개</a>
         <div class="drop">
-          <a href="/about/">{BRAND} 소개</a>
+          <a href="/about/">스피드서원 소개</a>
           <a href="/about/equipment/">보유 장비</a>
           <a href="/about/warranty/">6개월 보증 정책</a>
           <a href="/about/editorial/">콘텐츠 작성·검수 원칙</a>
@@ -269,22 +205,54 @@ HEADER = f"""
         </div>
       </li>
     </ul>
-    <a href="tel:{PHONE_TEL}" class="hd-call">
-      <span><small>24시간 접수</small><b>{PHONE}</b></span>
+    <a href="tel:01051834300" class="hd-call">
+      <span><small>24시간 접수</small><b>010-5183-4300</b></span>
     </a>
   </div>
 </header>
-"""
 
+<nav class="crumb" aria-label="현재 위치"><div class="wrap"><ol><li><a href="/">홈</a></li><li><a href="/price/">비용·견적</a></li><li aria-current="page">견적 산정 기준 공개</li></ol></div></nav>
+<main id="main">
+<section style="padding-top:8px">
+  <div class="wrap">
+    <div class="split">
+      <div>
+        <p class="eyebrow">Pricing</p>
+        <h1 style="font-size:clamp(26px,3.4vw,40px);margin-bottom:16px">견적 산정 기준 공개</h1>
+        
+        <div class="h2-block"><h2>운영 원칙</h2></div>
+        <ul class="box-list box-check"><li>① 유선 범위 고지 — 증상을 들으면 기본/확장 구간을 통화에서 먼저 말씀드립니다</li><li>② 도착 후 확정 — 내시경 등 진단 결과로 최종 금액을 서면 제시하고 동의 후 착수합니다</li><li>③ 범위 초과 시 중단 — 안내 범위를 넘는 작업이 필요하면 멈추고 사진과 함께 설명한 뒤 동의를 받습니다</li><li>④ 미동의 시 철수 — 동의하지 않으시면 출장비 3만원만 정산하고 철수합니다</li><li>⑤ 할증 사전 고지 — 야간(22~06시)·공휴일 3만원 할증은 접수 시점에 고지합니다</li><li>⑥ 증빙 — 시공 전후 사진·영상을 남기고 요청 시 전달합니다</li></ul>
+        <p class="note">이 여섯 가지는 광고 문구가 아니라 운영 절차입니다. 지켜지지 않았다면 그 자체가 클레임 사유가 되도록 문서로 공개해 둡니다. 분쟁 기준은 공정거래위원회 소비자분쟁해결기준을 따릅니다.</p>
+        <div class="h2-block"><h2>자주 묻는 질문</h2></div>
+        <div class="faq"><details open><summary>왜 '무료 견적'이 아니죠?</summary><div class="a">출장 자체가 비용이기 때문입니다. 출장비를 정직하게 받고, 견적 거절 시 그것만 정산하는 구조가 도착 후 큰 작업을 유도하는 구조보다 소비자에게 안전하다고 믿습니다.</div></details><details><summary>현장에서 금액이 늘어난 사례는 없나요?</summary><div class="a">있습니다. 다만 '작업 전 중단·설명·동의'를 거치므로 통보식 증액은 없습니다. 동의 없는 작업은 하지 않습니다.</div></details><details><summary>카드 결제 되나요?</summary><div class="a">됩니다. 현금영수증·세금계산서도 발행합니다.</div></details></div>
+        <p style="margin-top:32px;font-size:14px;color:var(--gray-600);border-top:1px solid var(--gray-200);padding-top:18px">작성·검수 <strong>서원배</strong> · 스피드서원 대표 / 배관기능사 · 검수일 2026-08-01<br>본문의 지역 정보는 자사 출동 기록과 공개 통계를 대조해 작성했으며 분기마다 갱신합니다. <a href="/about/editorial/" style="color:var(--gray-700);text-decoration:underline">콘텐츠 작성·검수 원칙</a></p>
+      </div>
+      <aside class="aside">
+        <div class="panel dark">
+          <h3>유선 견적 먼저</h3>
+          <p>증상을 들으면 기본/확장 어느 구간인지 통화에서 안내드립니다. 도착 후 통보는 하지 않습니다.</p>
+          <a href="tel:01051834300" class="callnum">010-5183-4300</a>
+        </div>
+        <div class="panel">
+          <h3>함께 보기</h3>
+          <ul>
+            <li><a href="/price/how-we-quote/">견적 산정 기준 공개</a></li>
+            <li><a href="/price/night-surcharge/">야간·공휴일 할증 안내</a></li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+</main>
 
-FOOTER = f"""
 <footer class="footer">
   <div class="wrap">
     <div class="ft-grid">
       <div class="ft-brand">
         <div class="logo">스피드<b>서원</b></div>
         <p>전국 배관공사·하수구막힘 전문<br>내시경 진단 · 고압세척 · 누수탐지</p>
-        <a href="tel:{PHONE_TEL}" class="ft-call">{PHONE}</a>
+        <a href="tel:01051834300" class="ft-call">010-5183-4300</a>
         <p>연중무휴 24시간 접수</p>
       </div>
       <div>
@@ -328,27 +296,27 @@ FOOTER = f"""
           <li><a href="/area/incheon/">인천</a></li>
           <li><a href="/area/busan/">부산</a></li>
           <li><a href="/area/daegu/">대구</a></li>
-          <li><a href="/area/">전국 {STAT_SIGUNGU}곳 전체</a></li>
+          <li><a href="/area/">전국 230곳 전체</a></li>
         </ul>
       </div>
     </div>
     <div class="ft-legal">
       <div class="biz">
-        <span>상호: {BRAND}</span><span>대표: {OWNER}</span>
-        <span>사업자등록번호: {BIZ_NO}</span><span>기계설비공사업 등록번호: {LICENSE_NO}</span>
-        <span>주소: {ADDRESS}</span><span>이메일: {EMAIL}</span>
+        <span>상호: 스피드서원</span><span>대표: 서원배</span>
+        <span>사업자등록번호: 000-00-00000</span><span>기계설비공사업 등록번호: 제0000호</span>
+        <span>주소: 경기도 수원시 팔달구 ○○로 00, 3층</span><span>이메일: help@speedseowon.co.kr</span>
       </div>
       <a href="/privacy/">개인정보처리방침</a> ·
       <a href="/terms/">이용약관</a> ·
       <a href="/about/editorial/">콘텐츠 작성 원칙</a> ·
       <a href="/sitemap.xml">사이트맵</a><br>
-      © 2026 {BRAND}. 본 사이트의 비용 자료와 시공 기록은 자사 현장 데이터이며 무단 전재를 금합니다.
-      누적 시공 {STAT_TOTAL_CASES:,}건 · 최종 검수 {REVIEWED}
+      © 2026 스피드서원. 본 사이트의 비용 자료와 시공 기록은 자사 현장 데이터이며 무단 전재를 금합니다.
+      누적 시공 12,400건 · 최종 검수 2026-08-01
     </div>
   </div>
 </footer>
 
-<a class="fab-call" href="tel:{PHONE_TEL}" aria-label="{PHONE} 전화 상담 연결">
+<a class="fab-call" href="tel:01051834300" aria-label="010-5183-4300 전화 상담 연결">
   <span class="fab-ring" aria-hidden="true"></span>
   <span class="fab-ring d2" aria-hidden="true"></span>
   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -358,83 +326,46 @@ FOOTER = f"""
 
 <div class="mobile-cta">
   <a href="/contact/" class="c1">견적 문의</a>
-  <a href="tel:{PHONE_TEL}" class="c2">지금 전화 {PHONE}</a>
+  <a href="tel:01051834300" class="c2">지금 전화 010-5183-4300</a>
 </div>
 
 <script>
-(function(){{
+(function(){
   var b=document.getElementById('burger'),g=document.getElementById('gnb');
-  if(b&&g){{
-    b.addEventListener('click',function(){{
+  if(b&&g){
+    b.addEventListener('click',function(){
       var open=g.classList.toggle('open');
       b.setAttribute('aria-expanded',open);
       b.setAttribute('aria-label',open?'전체 메뉴 닫기':'전체 메뉴 열기');
       document.body.style.overflow=open?'hidden':'';
-    }});
-    g.querySelectorAll(':scope > li > a').forEach(function(a){{
-      a.addEventListener('click',function(e){{
+    });
+    g.querySelectorAll(':scope > li > a').forEach(function(a){
+      a.addEventListener('click',function(e){
         if(window.innerWidth>880)return;
         var li=a.parentElement;
         if(!li.querySelector('.drop'))return;
         e.preventDefault();
         var was=li.classList.contains('on');
-        g.querySelectorAll('li.on').forEach(function(x){{x.classList.remove('on')}});
+        g.querySelectorAll('li.on').forEach(function(x){x.classList.remove('on')});
         if(!was)li.classList.add('on');
-      }});
-    }});
-    document.addEventListener('keydown',function(e){{
-      if(e.key==='Escape'){{
+      });
+    });
+    document.addEventListener('keydown',function(e){
+      if(e.key==='Escape'){
         g.classList.remove('open');b.setAttribute('aria-expanded','false');
         document.body.style.overflow='';
-      }}
-    }});
-  }}
+      }
+    });
+  }
   // 지역 아코디언: 하나만 열리게 (INP 부담 없는 최소 스크립트)
   var regions=document.querySelectorAll('details.region');
-  regions.forEach(function(d){{
-    d.addEventListener('toggle',function(){{
+  regions.forEach(function(d){
+    d.addEventListener('toggle',function(){
       if(!d.open)return;
-      regions.forEach(function(o){{ if(o!==d&&o.open&&o.parentElement===d.parentElement)o.open=false }});
-    }});
-  }});
-}})();
+      regions.forEach(function(o){ if(o!==d&&o.open&&o.parentElement===d.parentElement)o.open=false });
+    });
+  });
+})();
 </script>
 </body>
 </html>
-"""
-
-
-def thumb_svg(title, tag, seed=""):
-    """텍스트 썸네일 — 인라인 SVG. 페이지 폰트(Pretendard)를 그대로 상속합니다."""
-    import hashlib
-    h = int(hashlib.md5((seed + title).encode()).hexdigest(), 16)
-    accents = ["#FFB01F", "#00A8C8", "#3ED0EC", "#FFC751"]
-    ac = accents[h % len(accents)]
-    # 제목 줄바꿈: 공백 기준 중간 분할, 최대 2줄
-    words = title.split()
-    if len(title) <= 13 or len(words) == 1:
-        lines = [title]
-    else:
-        best, target = None, len(title) / 2
-        acc = 0
-        for i in range(1, len(words)):
-            acc = len(" ".join(words[:i]))
-            if best is None or abs(acc - target) < abs(best[1] - target):
-                best = (i, acc)
-        lines = [" ".join(words[:best[0]]), " ".join(words[best[0]:])]
-    maxlen = max(len(l) for l in lines)
-    fs = 58 if maxlen <= 11 else (50 if maxlen <= 14 else (43 if maxlen <= 17 else 37))
-    y0 = 235 if len(lines) == 1 else 208
-    tspans = "".join(
-        f'<tspan x="60" dy="{0 if i == 0 else fs * 1.28}">{l}</tspan>'
-        for i, l in enumerate(lines))
-    return f'''<svg class="g-thumb" viewBox="0 0 800 450" role="img" aria-label="{title}" preserveAspectRatio="xMidYMid slice">
-<rect width="800" height="450" fill="#0A1929"/>
-<g stroke="#FFFFFF" stroke-opacity=".05"><path d="{"".join(f"M{x} 0V450" for x in range(56, 800, 56))}"/><path d="{"".join(f"M0 {y}H800" for y in range(56, 450, 56))}"/></g>
-<circle cx="{690 + h % 60}" cy="{80 + (h >> 4) % 70}" r="150" fill="{ac}" opacity=".10"/>
-<rect x="60" y="96" width="52" height="6" rx="3" fill="{ac}"/>
-<text x="60" y="140" font-family="'IBM Plex Mono',monospace" font-size="19" letter-spacing="3" fill="{ac}">{tag}</text>
-<text x="60" y="{y0}" font-size="{fs}" font-weight="800" fill="#F2F7FB" letter-spacing="-1.5">{tspans}</text>
-<text x="60" y="396" font-size="20" fill="#8CA4BA">스피드서원 · 현장에서 쓴 글</text>
-<rect x="0" y="444" width="800" height="6" fill="{ac}"/>
-</svg>'''
