@@ -4,4 +4,4 @@ Disallow: /search/
 Disallow: /*?
 Disallow: /_build/
 
-Sitemap: https://speedseowon.co.kr/sitemap.xml
+Sitemap: https://speedseowon.netlify.app/sitemap.xml

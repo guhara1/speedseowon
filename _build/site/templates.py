@@ -21,8 +21,10 @@ def ld(obj):
             + "</script>")
 
 
-def business_ld():
-    return {
+def business_ld(rating=None):
+    """rating: {'aggregateRating':…, 'review':[…]} 를 넘기면 같은 노드에 합칩니다.
+    (@id 가 같은 노드를 두 번 내보내면 파서가 어느 쪽을 쓸지 모호해집니다)"""
+    node = {
         "@context": "https://schema.org", "@type": "Plumber",
         "@id": f"{SITE}/#business", "name": BRAND,
         "url": SITE + "/", "logo": f"{SITE}/img/{IMAGES['author'][0]}",
@@ -39,6 +41,9 @@ def business_ld():
         "founder": {"@type": "Person", "name": OWNER, "jobTitle": "대표 / 배관기능사"},
         "email": EMAIL,
     }
+    if rating:
+        node.update(rating)
+    return node
 
 
 def head(title, desc, canonical, extra_ld=None, og_image=None, robots=None):
@@ -323,6 +328,14 @@ FOOTER = f"""
     </div>
   </div>
 </footer>
+
+<a class="fab-call" href="tel:{PHONE_TEL}" aria-label="{PHONE} 전화 상담 연결">
+  <span class="fab-ring" aria-hidden="true"></span>
+  <span class="fab-ring d2" aria-hidden="true"></span>
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24 11.4 11.4 0 0 0 3.6.58 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .57 3.6 1 1 0 0 1-.25 1l-2.22 2.2z"/>
+  </svg>
+</a>
 
 <div class="mobile-cta">
   <a href="/contact/" class="c1">견적 문의</a>

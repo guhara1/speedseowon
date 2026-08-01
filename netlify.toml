@@ -1,0 +1,48 @@
+# Netlify 배포 설정 — 저장소 루트를 그대로 발행합니다.
+# HTML은 _build/build.py 가 미리 생성해 커밋되므로 빌드 단계가 없습니다.
+
+[build]
+  publish = "."
+  command = ""
+
+# /area/seoul/gangnam 로 들어와도 /area/seoul/gangnam/ 과 같은 페이지를 봅니다.
+[build.processing]
+  skip_processing = true
+
+# 이미지·CSS는 파일명이 바뀌기 전까지 오래 캐시합니다.
+[[headers]]
+  for = "/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+# HTML은 매번 검증 — 지역 페이지를 수정하면 바로 반영되게.
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "SAMEORIGIN"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+[[headers]]
+  for = "/sitemap*.xml"
+  [headers.values]
+    Content-Type = "application/xml; charset=utf-8"
+    Cache-Control = "public, max-age=3600"
+
+# 생성기 소스는 배포본에서 제외합니다.
+[[redirects]]
+  from = "/_build/*"
+  to = "/404.html"
+  status = 404
+
+[[redirects]]
+  from = "/tools/*"
+  to = "/404.html"
+  status = 404

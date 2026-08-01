@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """사이트 전역 설정값. 실제 운영 값으로 교체할 곳을 한 파일에 모았습니다."""
 
-SITE = "https://speedseowon.co.kr"
+SITE = "https://speedseowon.netlify.app"
 BRAND = "스피드서원"
 OWNER = "서원배"
 PHONE = "010-5183-4300"

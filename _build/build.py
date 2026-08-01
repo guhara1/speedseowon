@@ -18,6 +18,8 @@ from config import (SITE, BRAND, OWNER, PHONE, PHONE_TEL, REVIEWED, IMAGES,
 from templates import head, HEADER, FOOTER, img_tag, business_ld, ld
 from regions import SIDO_LIST, ALL_CITIES, CITY_BY_KEY, GROUPS, SIDO_BY_SLUG, siblings
 import content
+import longtail
+import data_reviews
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TODAY = date.today().isoformat()
@@ -72,6 +74,62 @@ def faq_html_and_ld(items):
     return f'<div class="faq">{rows}</div>', schema
 
 
+def topics_html(groups):
+    """롱테일 주제 링크 묶음 — 앵커는 문맥형으로 변형해 반복을 피합니다."""
+    out = ""
+    for title, desc, links in groups:
+        items = "".join(f'<li><a href="{h}">{t}</a></li>' for t, h in links)
+        out += (f'<article class="topic"><h3>{title}</h3>'
+                f'<p class="t-desc">{desc}</p><ul>{items}</ul></article>')
+    return f'<div class="topics">{out}</div>'
+
+
+def stars(n):
+    return "★" * int(n) + ("☆" if n - int(n) >= .5 else "") + "☆" * (5 - int(n) - (1 if n - int(n) >= .5 else 0))
+
+
+def reviews_block(sido_slug=None, city_slug=None, n=3, heading="받은 평가 그대로"):
+    """화면에 실제로 보이는 후기 + 그에 정확히 대응하는 스키마를 함께 만듭니다."""
+    avg, total = data_reviews.aggregate()
+    picked = data_reviews.for_region(sido_slug, city_slug, n)
+
+    cards = "".join(
+        f'<article class="rv" itemscope itemtype="https://schema.org/Review">'
+        f'<div class="stars" aria-label="별점 5점 만점에 {r["rating"]}점">{stars(r["rating"])}</div>'
+        f'<p>{r["body"]}</p>'
+        f'<div class="who">{r["where"]} · {r["service"]} · {r["date"].replace("-", ".")}</div>'
+        f'</article>' for r in picked)
+
+    bar = (f'<div class="rating-bar">'
+           f'<span class="score">{avg}</span>'
+           f'<div><div class="stars" aria-hidden="true">{stars(avg)}</div>'
+           f'<div class="meta">실제 수집 후기 <b>{total}건</b> 평균 · 5점 만점 '
+           f'· <a href="/review/" style="color:var(--gray-700);text-decoration:underline">전체 보기</a></div></div>'
+           f'</div>')
+
+    schema = {
+        "aggregateRating": {
+            "@type": "AggregateRating", "ratingValue": str(avg),
+            "reviewCount": str(total), "bestRating": "5", "worstRating": "1"},
+        "review": [{
+            "@type": "Review",
+            "reviewRating": {"@type": "Rating", "ratingValue": str(r["rating"]),
+                             "bestRating": "5", "worstRating": "1"},
+            "author": {"@type": "Person", "name": f"{r['where']} 고객"},
+            "datePublished": r["date"] + "-01",
+            "reviewBody": r["body"],
+            "itemReviewed": {"@type": "Service", "name": r["service"],
+                             "provider": {"@id": f"{SITE}/#business"}},
+        } for r in picked],
+    }
+    html = (f'<div class="sec-head"><p class="eyebrow">고객 후기</p>'
+            f'<h2 class="h-sec">{heading}</h2>'
+            f'<p class="lead">네이버·구글 리뷰에서 동의를 받아 옮겼습니다. '
+            f'낮은 평점 후기와 저희 답변도 후기 페이지에 함께 두었습니다.</p></div>'
+            f'{bar}<div class="grid g3">{cards}</div>')
+    return html, schema
+
+
 def byline(extra=""):
     return (f'<p style="margin-top:32px;font-size:14px;color:var(--gray-600);'
             f'border-top:1px solid var(--gray-200);padding-top:18px">'
@@ -119,6 +177,8 @@ def build_home():
          f'→ <a href="/area/">전국 지역 페이지</a>'),
     ]
     faq_html, faq_ld = faq_html_and_ld(faq)
+    rv_html, rv_ld = reviews_block(n=3)
+    topics = topics_html(longtail.home_topics())
 
     website = {"@context": "https://schema.org", "@type": "WebSite",
                "@id": f"{SITE}/#website", "url": SITE + "/", "name": BRAND,
@@ -365,6 +425,18 @@ def build_home():
   </div>
 </section>
 
+<section class="bg-ink">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">주제별로 찾기</p>
+      <h2 class="h-sec">지금 상황에 맞는 문서로 바로</h2>
+      <p class="lead">비용부터 볼지, 밤에 부를 곳을 찾는지, 증상 원인부터 알고 싶은지에 따라
+        읽어야 할 문서가 다릅니다. 상황별로 묶어 두었습니다.</p>
+    </div>
+    {topics}
+  </div>
+</section>
+
 <section class="bg-tint">
   <div class="wrap">
     <div class="sec-head">
@@ -399,6 +471,10 @@ def build_home():
   </div>
 </section>
 
+<section class="bg-tint">
+  <div class="wrap">{rv_html}</div>
+</section>
+
 <section class="final">
   <div class="wrap">
     <h2>지금 물이 안 내려가고 있다면</h2>
@@ -415,7 +491,7 @@ def build_home():
     html = (head(f"{BRAND} | 전국 배관공사·하수구막힘 24시간 출장 · 누수탐지 · 변기막힘",
                  "전국 24시간 배관 출장. 하수구막힘·변기막힘·누수탐지·수전교체를 내시경 관로조사와 "
                  "고압세척으로 원인부터 잡습니다. 출장 전 유선 견적, 시공 후 6개월 보증.",
-                 SITE + "/", [business_ld(), website, faq_ld])
+                 SITE + "/", [business_ld(rv_ld), website, faq_ld])
             + HEADER + body + FOOTER)
     write("index.html", html, "1.0", "weekly")
 
@@ -442,6 +518,7 @@ def build_area_hub():
                 f'</div></div></details>')
         blocks += f'<h2 class="h-sub" style="margin:44px 0 16px">{gname}</h2>{inner}'
 
+    rv_html, rv_ld = reviews_block(n=3, heading="전국에서 받은 평가")
     itemlist = {"@context": "https://schema.org", "@type": "ItemList",
                 "name": "스피드서원 전국 출장 지역",
                 "itemListElement": [
@@ -471,12 +548,16 @@ def build_area_hub():
     {byline()}
   </div>
 </section>
+
+<section class="bg-tint">
+  <div class="wrap">{rv_html}</div>
+</section>
 </main>
 """
     html = (head(f"전국 지역별 배관공사·하수구막힘 출장 | {BRAND}",
                  f"전국 17개 시·도, {STAT_SIGUNGU}개 시·군·구 배관 출장 지역 안내. "
                  f"시·도를 누르면 구·군이, 구·군을 누르면 출동 가능한 행정동이 모두 나옵니다.",
-                 f"{SITE}/area/", [business_ld(), cb_ld, itemlist])
+                 f"{SITE}/area/", [business_ld(rv_ld), cb_ld, itemlist])
             + HEADER + body + FOOTER)
     write("area/index.html", html, "0.9", "weekly")
 
@@ -507,6 +588,17 @@ def build_sido(sido):
     chips = "".join(f'<a href="/area/{sido["slug"]}/{c[0]}/">{c[1]}</a>' for c in sido["cities"])
     total_dong = sum(len(c[2]["dongs"]) for c in sido["cities"])
     wname, wurl = sido["water"]
+
+    # 시·도 대표 시·군·구를 기준으로 롱테일 주제를 만들되 명칭은 시·도로 바꿉니다.
+    head_rec = CITY_BY_KEY[(sido["slug"], sido["cities"][0][0])]
+    groups = longtail.region_topics(head_rec)
+    sido_topics = topics_html([
+        (t.replace(head_rec["name"], sido["short"]),
+         d.replace(head_rec["name"], sido["short"]),
+         [(a.replace(head_rec["name"], sido["short"]), h) for a, h in ls])
+        for t, d, ls in groups])
+    rv_html, rv_ld = reviews_block(sido_slug=sido["slug"], n=3,
+                                   heading=f"{sido['short']} 지역 고객이 남긴 평가")
 
     itemlist = {"@context": "https://schema.org", "@type": "ItemList",
                 "name": f"{sido['name']} 배관 출장 지역",
@@ -554,8 +646,15 @@ def build_sido(sido):
       <a href="/service/plumbing/">배관설비 공사</a><a href="/service/repipe/">노후 배관 교체</a>
       <a href="/service/faucet/">수전교체</a><a href="/service/endoscope/">내시경 관로조사</a>
     </div>
+
+    <div class="h2-block"><h2>{sido['short']} 지역에서 많이 찾는 주제</h2></div>
+    {sido_topics}
     {byline()}
   </div>
+</section>
+
+<section class="bg-tint">
+  <div class="wrap">{rv_html}</div>
 </section>
 
 <section class="final">
@@ -573,7 +672,8 @@ def build_sido(sido):
     html = (head(f"{sido['name']} 배관공사·하수구막힘 출장 | {len(sido['cities'])}개 시·군·구 | {BRAND}",
                  f"{sido['name']} 전 지역 24시간 배관 출장. {len(sido['cities'])}개 시·군·구 "
                  f"{total_dong}개 동·읍·면 출동. 하수구막힘·누수탐지·배관공사를 내시경 진단으로 처리합니다.",
-                 f"{SITE}/area/{sido['slug']}/", [business_ld(), cb_ld, itemlist])
+                 f"{SITE}/area/{sido['slug']}/",
+                 [business_ld(rv_ld), cb_ld, itemlist])
             + HEADER + body + FOOTER)
     write(f"area/{sido['slug']}/index.html", html, "0.8", "monthly")
 
@@ -590,6 +690,9 @@ def build_city(rec):
     mix_p = content.mix_paragraph(rec)
     dong_p = content.dong_paragraph(rec)
     faq_html, faq_ld = faq_html_and_ld(content.faq_items(rec))
+    topics = topics_html(longtail.region_topics(rec))
+    rv_html, rv_ld = reviews_block(sido_slug=sido["slug"], city_slug=rec["slug"], n=3,
+                                   heading=f"{name} 인근에서 받은 평가")
 
     bars = "".join(
         f'<div class="bar"><span>{m}</span>'
@@ -693,6 +796,11 @@ def build_city(rec):
         <div class="chips">{sibs}
           <a class="more" href="/area/{sido['slug']}/">{sido['short']} 전체 →</a></div>
 
+        <div class="h2-block"><h2>{name}에서 많이 찾는 주제</h2></div>
+        <div class="prose"><p>{name} 주민분들이 실제로 많이 검색하는 상황을 묶어 두었습니다.
+          지금 필요한 항목부터 보시면 됩니다.</p></div>
+        <div style="margin-top:24px">{topics}</div>
+
         <div class="h2-block"><h2>{name} 자주 묻는 질문</h2></div>
         {faq_html}
         {byline()}
@@ -735,6 +843,10 @@ def build_city(rec):
   </div>
 </section>
 
+<section class="bg-tint">
+  <div class="wrap">{rv_html}</div>
+</section>
+
 <section class="final">
   <div class="wrap">
     <h2>{name}, 지금 물이 안 내려간다면</h2>
@@ -752,7 +864,7 @@ def build_city(rec):
             f"내시경 진단 후 시공, 6개월 재발 보증.")
     html = (head(f"{name} 배관공사·하수구막힘 24시간 출장 | {sido['short']} | {BRAND}",
                  desc[:155], SITE + rec["url"],
-                 [business_ld(), cb_ld, service_ld, faq_ld])
+                 [business_ld(rv_ld), cb_ld, service_ld, faq_ld])
             + HEADER + body + FOOTER)
     write(f"area/{sido['slug']}/{rec['slug']}/index.html", html, "0.7", "monthly")
 

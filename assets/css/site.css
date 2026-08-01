@@ -579,6 +579,54 @@ section{padding-block:clamp(56px,7vw,104px)}
            color:var(--gray-700);padding-top:14px;border-top:var(--hair)}
 .case-meta b{color:var(--cyan);font-weight:600}
 
+/* ------------------------------------------- 14-b. 롱테일 주제 링크 */
+.topics{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s4)}
+.topic{
+  background:var(--white);border:var(--hair);border-radius:var(--r-lg);
+  padding:24px 24px 20px;display:flex;flex-direction:column;
+  transition:box-shadow .2s var(--ease),border-color .2s var(--ease);
+}
+.topic:hover{box-shadow:var(--e2);border-color:var(--gray-300)}
+.topic h3{
+  font-size:17px;margin-bottom:8px;display:flex;align-items:center;gap:9px;
+}
+.topic h3::before{
+  content:"";width:8px;height:8px;border-radius:2px;background:var(--amber);flex:none;
+}
+.topic .t-desc{font-size:14px;color:var(--gray-600);line-height:1.62;margin-bottom:16px}
+.topic ul{display:grid;gap:1px;border-top:1px solid var(--gray-200);padding-top:6px}
+.topic li a{
+  display:flex;align-items:flex-start;gap:9px;min-height:44px;padding:9px 6px 9px 2px;
+  font-size:14.8px;line-height:1.5;color:var(--gray-700);font-weight:500;
+  border-radius:var(--r-sm);transition:background .14s,color .14s,padding .14s var(--ease);
+}
+.topic li a::before{
+  content:"";flex:none;width:14px;height:14px;margin-top:5px;
+  background:currentColor;opacity:.42;
+  -webkit-mask:var(--arw) center/contain no-repeat;mask:var(--arw) center/contain no-repeat;
+}
+.topic li a:hover{background:var(--gray-50);color:var(--cyan);padding-left:8px}
+.topic li a:hover::before{opacity:1}
+:root{--arw:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12h13M13 6l6 6-6 6' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+.bg-ink .topic{background:var(--ink-700);border-color:rgba(255,255,255,.12)}
+.bg-ink .topic h3{color:var(--white)}
+.bg-ink .topic .t-desc{color:var(--on-dark-3)}
+.bg-ink .topic ul{border-top-color:rgba(255,255,255,.12)}
+.bg-ink .topic li a{color:var(--on-dark-2)}
+.bg-ink .topic li a:hover{background:rgba(255,255,255,.06);color:var(--cyan-bright)}
+
+/* 후기 */
+.rating-bar{
+  display:flex;align-items:center;gap:var(--s5);flex-wrap:wrap;
+  background:var(--white);border:var(--hair);border-radius:var(--r-lg);
+  padding:20px 24px;margin-bottom:var(--s5);
+}
+.rating-bar .score{font-family:var(--mono);font-size:38px;font-weight:600;
+                   color:var(--ink-800);line-height:1;letter-spacing:-.03em}
+.rating-bar .stars{color:var(--amber);font-size:18px;letter-spacing:.14em}
+.rating-bar .meta{font-size:14px;color:var(--gray-600)}
+.rating-bar .meta b{color:var(--gray-900)}
+
 /* -------------------------------------------------------- 15. CTA/푸터 */
 .final{background:linear-gradient(135deg,var(--amber) 0%,#FFC751 100%);color:var(--ink-900);
        text-align:center;position:relative;overflow:hidden}
@@ -609,10 +657,47 @@ section{padding-block:clamp(56px,7vw,104px)}
 
 .mobile-cta{display:none}
 
+/* --------------------------------------- 15-b. 모바일 플로팅 전화 버튼 */
+.fab-call{
+  display:none;                       /* 데스크톱에서는 숨김 */
+  position:fixed;right:16px;bottom:82px;z-index:125;
+  width:62px;height:62px;border-radius:50%;
+  align-items:center;justify-content:center;
+  background:radial-gradient(circle at 34% 30%,#FFCA5A,var(--amber) 58%,#F09A00);
+  box-shadow:0 8px 20px rgba(201,122,0,.44),0 2px 6px rgba(6,15,26,.3),
+             inset 0 1px 0 rgba(255,255,255,.55);
+  animation:fabBob 3.2s var(--ease) infinite;
+  -webkit-tap-highlight-color:transparent;
+}
+.fab-call svg{
+  width:30px;height:30px;fill:var(--ink-900);position:relative;z-index:2;
+  animation:fabShake 3.2s var(--ease) infinite;
+  transform-origin:52% 52%;
+}
+.fab-call:active{transform:scale(.94)}
+/* 퍼져 나가는 신호 링 */
+.fab-ring{
+  position:absolute;inset:0;border-radius:50%;
+  border:2px solid var(--amber);
+  animation:fabRing 2.4s cubic-bezier(.2,.6,.35,1) infinite;
+}
+.fab-ring.d2{animation-delay:1.2s}
+@keyframes fabRing{
+  0%{transform:scale(.94);opacity:.7}
+  70%{transform:scale(1.95);opacity:0}
+  100%{transform:scale(1.95);opacity:0}
+}
+@keyframes fabBob{0%,100%{translate:0 0}50%{translate:0 -5px}}
+@keyframes fabShake{
+  0%,58%,100%{rotate:0deg}
+  62%{rotate:-16deg} 66%{rotate:14deg} 70%{rotate:-11deg}
+  74%{rotate:9deg}   78%{rotate:-6deg} 82%{rotate:3deg} 86%{rotate:0deg}
+}
+
 /* -------------------------------------------------------- 16. 반응형 */
 @media(max-width:1180px){
   .mega-grid{grid-template-columns:repeat(2,1fr)}
-  .g4,.sym,.stat-row{grid-template-columns:repeat(2,1fr)}
+  .g4,.sym,.stat-row,.topics{grid-template-columns:repeat(2,1fr)}
   .flow{grid-template-columns:repeat(3,1fr)}
   .ft-grid{grid-template-columns:1fr 1fr 1fr}
 }
@@ -646,13 +731,15 @@ section{padding-block:clamp(56px,7vw,104px)}
   .mega-grid{grid-template-columns:1fr;padding:6px 20px 10px;gap:0}
   .hd-call b{font-size:16px}
   .hd-call{padding:8px 13px}
-  .g2,.g3,.g4,.sym,.author,.aside{grid-template-columns:1fr}
+  .g2,.g3,.g4,.sym,.author,.aside,.topics{grid-template-columns:1fr}
+  .rating-bar{gap:var(--s4)}
   .author{gap:var(--s5);padding:24px}
   .author img{max-width:150px}
   .flow{grid-template-columns:1fr 1fr}
   .stat-row{grid-template-columns:1fr 1fr}
   .bar{grid-template-columns:110px 1fr 42px}
   body{padding-bottom:70px}
+  .fab-call{display:flex}
   .mobile-cta{
     display:grid;grid-template-columns:1fr 1.25fr;position:fixed;inset-inline:0;bottom:0;z-index:120;
     box-shadow:0 -4px 20px rgba(6,15,26,.22);
@@ -695,6 +782,9 @@ section{padding-block:clamp(56px,7vw,104px)}
     transition-duration:.001ms!important;scroll-behavior:auto!important;
   }
   .board-body{height:auto;max-height:200px;overflow-y:auto;mask-image:none}
+  /* 전화 버튼은 남기되 흔들림만 멈춥니다 — 눈에 띄는 역할은 유지 */
+  .fab-call,.fab-call svg{animation:none}
+  .fab-ring{display:none}
 }
 @media(prefers-contrast:more){
   :root{--gray-600:#3B4C5E;--gray-300:#8A9AAA;--hair:1px solid #6B7C8D}
