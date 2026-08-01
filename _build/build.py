@@ -7,32 +7,52 @@
 출력: 저장소 루트에 index.html / area/** / sitemap*.xml / robots.txt
 """
 import os
+import re
 import sys
-from datetime import date
+from datetime import date, datetime, timezone
+from email.utils import format_datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "site"))
 
 from config import (SITE, BRAND, OWNER, PHONE, PHONE_TEL, REVIEWED, IMAGES,
                     STAT_TOTAL_CASES, STAT_PRICE_BASE, STAT_ARRIVE_MIN,
-                    STAT_SIGUNGU, OUTBOUND)
+                    STAT_SIGUNGU, OUTBOUND, RSS_TITLE, RSS_DESC, INDEXNOW_KEY,
+                    HEROES, WORKS, CASES)
 from templates import head, HEADER, FOOTER, img_tag, business_ld, ld
 from regions import SIDO_LIST, ALL_CITIES, CITY_BY_KEY, GROUPS, SIDO_BY_SLUG, siblings
+import hashlib
+
 import content
 import longtail
 import data_reviews
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TODAY = date.today().isoformat()
-PAGES = []          # (url, priority, changefreq) — 사이트맵용
+PAGES = []          # (url, priority, changefreq, title) — 사이트맵·RSS용
+DESCS = {}          # url → meta description (RSS 항목 설명으로 재사용)
+
+
+def esc(s):
+    return (s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+             .replace('"', "&quot;"))
+
+
+def write_raw(rel, text):
+    path = os.path.join(ROOT, rel.lstrip("/"))
+    os.makedirs(os.path.dirname(path) or ROOT, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
 
 
 def write(rel, html, prio="0.6", freq="monthly"):
-    path = os.path.join(ROOT, rel.lstrip("/"))
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(html)
+    write_raw(rel, html)
     url = "/" + rel.lstrip("/").replace("index.html", "")
-    PAGES.append((url, prio, freq))
+    # title/description 은 이미 head 에 있으므로 다시 넘겨받지 않고 그대로 읽습니다.
+    t = re.search(r"<title>(.*?)</title>", html, re.S)
+    d = re.search(r'<meta name="description" content="(.*?)">', html, re.S)
+    PAGES.append((url, prio, freq, t.group(1) if t else BRAND))
+    if d:
+        DESCS[url] = d.group(1)
 
 
 def snip(text, n=170):
@@ -82,6 +102,30 @@ def topics_html(groups):
         out += (f'<article class="topic"><h3>{title}</h3>'
                 f'<p class="t-desc">{desc}</p><ul>{items}</ul></article>')
     return f'<div class="topics">{out}</div>'
+
+
+def pick(seed, pool, k=1):
+    """지역마다 다른 사진이 걸리도록 slug 해시로 고릅니다(같은 지역은 항상 같은 사진)."""
+    h = int(hashlib.md5(seed.encode()).hexdigest(), 16)
+    n = len(pool)
+    out, used = [], set()
+    for i in range(k):
+        j = (h + i * 7 + (h >> (4 * (i + 1))) % n) % n
+        while j in used:
+            j = (j + 1) % n
+        used.add(j)
+        out.append(pool[j])
+    return out if k > 1 else out[0]
+
+
+def gallery(keys, caps):
+    """현장사진 3장 그리드. caps: [(태그, 제목, 설명)]"""
+    figs = ""
+    for key, (tag, title, desc) in zip(keys, caps):
+        figs += (f'<figure><span class="tag">{tag}</span>'
+                 f'{img_tag(key)}'
+                 f'<figcaption><b>{title}</b>{desc}</figcaption></figure>')
+    return f'<div class="gallery">{figs}</div>'
 
 
 def stars(n):
@@ -179,6 +223,16 @@ def build_home():
     faq_html, faq_ld = faq_html_and_ld(faq)
     rv_html, rv_ld = reviews_block(n=3)
     topics = topics_html(longtail.home_topics())
+    home_gal1 = gallery(WORKS[:3], [
+        ("DRAIN", "하수구 관통", "스프링 관통기로 폐색 구간을 뚫는 작업. 관경과 재질을 먼저 봅니다."),
+        ("HYDRO JET", "오수관 고압세척", "관 벽에 굳은 기름층을 물 압력으로 벗겨냅니다."),
+        ("TOILET", "변기 탈거", "압축으로 안 되는 이물질은 변기를 들어내 직접 꺼냅니다."),
+    ])
+    home_gal2 = gallery(WORKS[3:6], [
+        ("KITCHEN", "주방 배수관", "식당 유지관은 퇴적 속도가 달라 세척 주기를 따로 잡습니다."),
+        ("LEAK", "욕실 누수 보수", "탐지로 위치를 좁힌 뒤 최소 범위만 열어 보수합니다."),
+        ("PIPING", "급수 배관 연결", "매립 전 경로를 사진으로 남겨 다음 수리 때 덜 뜯게 합니다."),
+    ])
 
     website = {"@context": "https://schema.org", "@type": "WebSite",
                "@id": f"{SITE}/#website", "url": SITE + "/", "name": BRAND,
@@ -230,7 +284,7 @@ def build_home():
     <div class="hero-media">
       <figure class="shot">
         <span class="shot-tag">FIELD RECORD</span>
-        {img_tag('hero', priority=True)}
+        {img_tag('hero1', priority=True)}
         <figcaption><b>내시경 관로조사</b>뚫기 전에 관 안을 먼저 봅니다. 이물질인지, 관이 꺼졌는지, 기름이 굳은 건지에 따라 해법이 달라집니다.</figcaption>
       </figure>
       <div class="board" aria-label="최근 출동 기록">
@@ -383,6 +437,22 @@ def build_home():
   </div>
 </section>
 
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">현장 사진</p>
+      <h2 class="h-sec">저희가 실제로 찍은 것들</h2>
+      <p class="lead">홍보용으로 연출한 사진이 아니라 작업하면서 남긴 기록입니다.
+        고객 동의를 받아 공개하며, 개인을 식별할 수 있는 부분은 담지 않았습니다.</p>
+    </div>
+    {home_gal1}
+    <div style="height:16px"></div>
+    {home_gal2}
+    <p class="gal-note">모든 현장에서 시공 전후 사진과 내시경 영상을 남깁니다.
+      보증 처리와 임대인·세입자 협의 자료로 그대로 쓰실 수 있습니다.</p>
+  </div>
+</section>
+
 <section class="bg-tint">
   <div class="wrap">
     <div class="sec-head">
@@ -396,15 +466,15 @@ def build_home():
         f'<div class="case-b"><h3>{t}</h3><p>{d}</p>'
         f'<div class="case-meta"><span>{loc}</span><span><b>{svc}</b></span><span>{dur}</span></div></div></article>'
         for k,tag,alt,t,d,loc,svc,dur in [
-          ("jetting","HYDRO JET","고압세척기로 빌라 공용 오수관 기름층을 제거하는 작업",
+          ("case1","HYDRO JET","고압세척기로 빌라 공용 오수관 기름층을 제거하는 작업",
            "25년 된 빌라 오수관, 두 번 만에 잡은 역류",
            "1차에 관통기로 뚫었으나 열흘 만에 재발했습니다. 내시경으로 확인하니 관 벽 기름층이 원인이었고, 2차에 고압세척으로 재시공한 뒤 보증 처리했습니다.",
            "인천 부평구","배관막힘","총 3시간"),
-          ("leak","ENDOSCOPE","열화상 카메라로 욕실 하부 누수 지점을 확인하는 장면",
+          ("case2","ENDOSCOPE","열화상 카메라로 욕실 하부 누수 지점을 확인하는 장면",
            "아랫집 천장 누수, 원인은 윗집 욕조 배수",
            "배관이 아니라 욕조 하부 배수 이음부 틈이었습니다. 급수 누수로 오인해 벽을 뜯을 뻔한 현장으로, 탐지 단계에서 방향을 바꿔 비용을 크게 줄였습니다.",
            "서울 노원구","욕실배관누수","총 5시간"),
-          ("kitchen","GREASE","식당 주방 배수관 내부에 굳은 기름층 내시경 화면",
+          ("case3","GREASE","식당 주방 배수관 내부에 굳은 기름층 내시경 화면",
            "식당 주방 배수, 3개월마다 막히던 주기를 늘리다",
            "그리스트랩 관리 부재가 근본 원인이었습니다. 고압세척과 함께 트랩 청소 주기를 잡아 드렸고 이후 1년간 재발 신고가 없었습니다.",
            "수원 팔달구","주방배수구막힘","총 4시간"),
@@ -599,6 +669,11 @@ def build_sido(sido):
         for t, d, ls in groups])
     rv_html, rv_ld = reviews_block(sido_slug=sido["slug"], n=3,
                                    heading=f"{sido['short']} 지역 고객이 남긴 평가")
+    sido_gal = gallery(pick(sido["slug"] + "g", WORKS, 3), [
+        ("FIELD", f"{sido['short']} 출동 현장", "지역마다 건물 연식이 달라 확인 순서부터 다르게 잡습니다."),
+        ("FIELD", "관 내부 확인", "뚫기 전에 내시경으로 원인을 특정하고 화면을 함께 봅니다."),
+        ("FIELD", "시공 후 기록", "작업 후 상태를 영상으로 남겨 보증 근거로 씁니다."),
+    ])
 
     itemlist = {"@context": "https://schema.org", "@type": "ItemList",
                 "name": f"{sido['name']} 배관 출장 지역",
@@ -624,6 +699,9 @@ def build_sido(sido):
       <div><dt>평균 도착</dt><dd>{sido['arrive']}<small>분 (도심 기준)</small></dd></div>
       <div><dt>접수</dt><dd>24<small>시간 연중무휴</small></dd></div>
     </dl>
+
+    <div class="h2-block"><h2>{sido['short']} 지역 시공 현장</h2></div>
+    {sido_gal}
 
     <div class="h2-block"><h2>{sido['name']} 시·군·구 전체</h2></div>
     <div class="chips" style="margin-bottom:28px">{chips}</div>
@@ -691,6 +769,14 @@ def build_city(rec):
     dong_p = content.dong_paragraph(rec)
     faq_html, faq_ld = faq_html_and_ld(content.faq_items(rec))
     topics = topics_html(longtail.region_topics(rec))
+    hero_key = pick(rec["slug"] + sido["slug"], HEROES)
+    gal_keys = pick(rec["slug"] + "w", WORKS, 3)
+    city_gal = gallery(gal_keys, [
+        ("BEFORE", f"{name} 현장 도착", f"{p['spots'].split(',')[0].strip()} 일대에서 남긴 작업 기록입니다."),
+        ("DURING", "원인 확인", f"{p['mix'][0][0]} 요청이 가장 많아 그 가능성부터 확인합니다."),
+        ("AFTER", "시공 마무리", "작업 후 상태를 영상으로 남기고 6개월 보증을 등록합니다."),
+    ])
+    wide_key = pick(rec["slug"] + "x", CASES)
     rv_html, rv_ld = reviews_block(sido_slug=sido["slug"], city_slug=rec["slug"], n=3,
                                    heading=f"{name} 인근에서 받은 평가")
 
@@ -748,8 +834,8 @@ def build_city(rec):
     <div class="hero-media">
       <figure class="shot">
         <span class="shot-tag">{sido['short']} {name} 현장</span>
-        {img_tag('hero', priority=True,
-                 alt=f'{sido["short"]} {name} 현장에서 관로 내시경으로 배관 내부를 확인하는 스피드서원 기사')}
+        {img_tag(hero_key, priority=True,
+                 alt=f'{sido["short"]} {name} 배관 시공 현장 — {IMAGES[hero_key][3]}')}
         <figcaption><b>{full} 출동</b>{p['spots']} 일대까지 장비를 싣고 나갑니다. 뚫기 전에 관 안을 먼저 확인합니다.</figcaption>
       </figure>
     </div>
@@ -773,9 +859,21 @@ def build_city(rec):
         <div class="h2-block"><h2>{name} 건물 특성과 자주 나오는 배관 문제</h2></div>
         <div class="prose">{prof_paras}</div>
 
+        <div class="h2-block"><h2>{name} 시공 현장 사진</h2></div>
+        <div class="prose"><p>{name}에서 작업하며 남긴 기록입니다. 홍보용으로 연출하지 않았고,
+          고객 동의를 받아 개인을 식별할 수 있는 부분은 담지 않았습니다.</p></div>
+        <div style="margin-top:22px">{city_gal}</div>
+        <p class="gal-note">모든 현장에서 시공 전후 사진과 내시경 영상을 남겨 드립니다.</p>
+
         <div class="h2-block"><h2>{name} 출동 가능 지역</h2></div>
         <div class="prose"><p>{dong_p}</p></div>
         <ul class="dongs" style="margin-top:20px">{dongs}</ul>
+
+        <figure class="figure-wide">
+          {img_tag(wide_key, alt=f'{sido["short"]} {name} 인근 시공 사례 — {IMAGES[wide_key][3]}')}
+          <figcaption><b>{name} 인근 시공 사례</b> — {IMAGES[wide_key][3]}.
+            같은 증상이라도 건물 연식과 배관 재질에 따라 작업 방식이 달라집니다.</figcaption>
+        </figure>
 
         <div class="h2-block"><h2>{name} 상수도 관련 문의처</h2></div>
         <div class="prose">
@@ -871,37 +969,89 @@ def build_city(rec):
 
 # ================================================================ 부가 파일
 def build_sitemaps():
-    def urlset(pages):
-        rows = "".join(
-            f"<url><loc>{SITE}{u}</loc><lastmod>{TODAY}</lastmod>"
-            f"<changefreq>{f}</changefreq><priority>{p}</priority></url>"
-            for u, p, f in pages)
-        return ('<?xml version="1.0" encoding="UTF-8"?>'
-                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-                + rows + "</urlset>")
+    """사이트맵(이미지 포함) · RSS · robots.txt · IndexNow 키 파일."""
+    hero_img, hero_w, hero_h, hero_alt = IMAGES["hero1"]
+
+    def urlset(pages, with_image=False):
+        rows = ""
+        for u, p, f, title in pages:
+            img = ""
+            if with_image:
+                img = (f"<image:image><image:loc>{SITE}/img/{hero_img}</image:loc>"
+                       f"<image:title>{esc(title)}</image:title>"
+                       f"<image:caption>{esc(hero_alt)}</image:caption></image:image>")
+            rows += (f"<url><loc>{SITE}{u}</loc><lastmod>{TODAY}</lastmod>"
+                     f"<changefreq>{f}</changefreq><priority>{p}</priority>{img}</url>")
+        ns = ('xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'
+              ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"')
+        return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset {ns}>{rows}</urlset>'
 
     area = [x for x in PAGES if x[0].startswith("/area/")]
     core = [x for x in PAGES if not x[0].startswith("/area/")]
 
-    with open(os.path.join(ROOT, "sitemap-area.xml"), "w", encoding="utf-8") as f:
-        f.write(urlset(area))
-    with open(os.path.join(ROOT, "sitemap-core.xml"), "w", encoding="utf-8") as f:
-        f.write(urlset(core))
-    with open(os.path.join(ROOT, "sitemap.xml"), "w", encoding="utf-8") as f:
-        f.write('<?xml version="1.0" encoding="UTF-8"?>'
-                '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-                + "".join(f"<sitemap><loc>{SITE}/{n}</loc><lastmod>{TODAY}</lastmod></sitemap>"
-                          for n in ("sitemap-core.xml", "sitemap-area.xml"))
-                + "</sitemapindex>")
+    write_raw("sitemap-area.xml", urlset(area, with_image=True))
+    write_raw("sitemap-core.xml", urlset(core, with_image=True))
+    write_raw("sitemap.xml",
+              '<?xml version="1.0" encoding="UTF-8"?>\n'
+              '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+              + "".join(f"<sitemap><loc>{SITE}/{n}</loc><lastmod>{TODAY}</lastmod></sitemap>"
+                        for n in ("sitemap-core.xml", "sitemap-area.xml"))
+              + "</sitemapindex>")
 
-    with open(os.path.join(ROOT, "robots.txt"), "w", encoding="utf-8") as f:
-        f.write(f"""User-agent: *
+    # ---- RSS 2.0 — 네이버 서치어드바이저 'RSS 제출' 에 그대로 넣습니다.
+    pub = format_datetime(datetime.now(timezone.utc))
+    items = ""
+    for u, p, f, title in sorted(PAGES, key=lambda x: -float(x[1])):
+        items += (f"<item><title>{esc(title)}</title>"
+                  f"<link>{SITE}{u}</link>"
+                  f"<guid isPermaLink=\"true\">{SITE}{u}</guid>"
+                  f"<description>{esc(DESCS.get(u, RSS_DESC))}</description>"
+                  f"<pubDate>{pub}</pubDate></item>")
+    write_raw("rss.xml",
+              '<?xml version="1.0" encoding="UTF-8"?>\n'
+              '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">'
+              f"<channel><title>{esc(RSS_TITLE)}</title>"
+              f"<link>{SITE}/</link><description>{esc(RSS_DESC)}</description>"
+              f"<language>ko</language><lastBuildDate>{pub}</lastBuildDate>"
+              f'<atom:link href="{SITE}/rss.xml" rel="self" type="application/rss+xml"/>'
+              f"{items}</channel></rss>")
+
+    # ---- IndexNow 키 파일 (루트에 <키>.txt 로 존재해야 검증됩니다)
+    write_raw(f"{INDEXNOW_KEY}.txt", INDEXNOW_KEY)
+
+    # ---- robots.txt
+    write_raw("robots.txt", f"""# {BRAND} — {SITE}
+# 검색엔진별로 따로 적은 이유: 네이버 Yeti 는 크롤 지연을 명시하면 그대로 따릅니다.
+# 지연을 주면 229개 지역 페이지 수집이 며칠씩 늦어져 일부러 넣지 않았습니다.
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Yeti
+Allow: /
+
+User-agent: NaverBot
+Allow: /
+
+User-agent: Daumoa
+Allow: /
+
+User-agent: bingbot
+Allow: /
+
+User-agent: *
 Allow: /
 Disallow: /search/
 Disallow: /*?
 Disallow: /_build/
+Disallow: /tools/
 
 Sitemap: {SITE}/sitemap.xml
+Sitemap: {SITE}/sitemap-core.xml
+Sitemap: {SITE}/sitemap-area.xml
 """)
 
 
@@ -915,11 +1065,11 @@ def main():
     build_sitemaps()
 
     print(f"생성 완료: {len(PAGES)}개 페이지")
-    print(f"  · 메인 1")
-    print(f"  · 지역 허브 1")
-    print(f"  · 시·도 {len(SIDO_LIST)}")
-    print(f"  · 시·군·구 {len(ALL_CITIES)}")
-    print(f"  · sitemap.xml / sitemap-core.xml / sitemap-area.xml / robots.txt")
+    print(f"  · 메인 1 · 지역 허브 1 · 시·도 {len(SIDO_LIST)} · 시·군·구 {len(ALL_CITIES)}")
+    print(f"  · sitemap.xml (+core/+area, 이미지 확장 포함)")
+    print(f"  · rss.xml  {len(PAGES)}개 항목  — 네이버 서치어드바이저 RSS 제출용")
+    print(f"  · robots.txt (Googlebot / Yeti / NaverBot / Daumoa / bingbot 개별 허용)")
+    print(f"  · {INDEXNOW_KEY}.txt  — IndexNow 소유 확인 키")
 
 
 if __name__ == "__main__":

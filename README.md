@@ -144,38 +144,76 @@ E-E-A-T 신호가 더 강해집니다.
 
 ---
 
-## 6. 이미지
+## 6. 이미지 — 고객 제공 현장사진 21장
 
-`img/` 의 8개 슬롯은 전부 **WebP 30KB 이하**입니다.
+`img/` 슬롯 **21개**가 드라이브 원본 21장과 1:1로 대응합니다. 전부 **WebP 30KB 이하**.
 
-| 파일 | 크기 | 쓰이는 곳 |
+| 슬롯 | 개수 | 배치 |
 |---|---|---|
-| `field-endoscope-inspection.webp` | 880×660 | **히어로 우측** (메인 + 지역 페이지 229개 전부) |
-| `hydro-jetting-sewer-line.webp` | 640×480 | 시공사례 |
-| `leak-detection-thermal.webp` | 640×480 | 시공사례 |
-| `kitchen-drain-grease.webp` | 640×480 | 시공사례 |
-| `old-galvanized-pipe-replace.webp` | 640×480 | 예비 |
-| `toilet-clog-removal.webp` | 640×480 | 예비 |
-| `seo-wonbae-portrait.webp` | 400×400 | 대표 소개 |
-| `og-speedseowon-1200x630.webp` | 1200×630 | og:image |
+| `field-*` (히어로) | 4 | 메인 + **지역 페이지 229개 히어로 우측** — 지역별로 4장이 돌아갑니다 |
+| `work-*` (본문) | 12 | 메인 본문 6장 + 시·도 3장 + 시·군·구 3장 (지역마다 조합이 다름) |
+| `case-*` (사례) | 3 | 메인 시공사례 카드 3장 + 지역 페이지 와이드 사진 1장 |
+| `seo-wonbae-*` | 1 | 대표 소개 |
+| `og-*` | 1 | og:image |
 
-### 실제 작업사진으로 교체
+**페이지당 이미지** — 메인 11장 · 시·도 3장 · 시·군·구 5장(히어로 1 + 갤러리 3 + 와이드 1).
+히어로 4장은 229개 지역에 51~61개씩 고르게 분산됩니다(지역 slug 해시 기준, 같은 지역은 항상 같은 사진).
 
-이 작업 환경은 네트워크 정책상 `drive.google.com` 접근이 차단돼 있어
-구글드라이브 원본(21장)을 내려받지 못했습니다. 현재 슬롯에는 같은 파일명·같은 비율의
-브랜드 플레이트가 들어가 있습니다.
+### 실제 사진이 들어가는 시점
 
-**차단되지 않은 PC에서 아래 한 줄이면 전부 실제 사진으로 바뀝니다.** HTML은 손댈 필요 없습니다.
+이 개발 샌드박스는 네트워크 정책상 `drive.google.com` 이 차단돼 있습니다.
+`lh3.googleusercontent.com`, `drive.usercontent.google.com`, `docs.google.com` 도 모두 막혀 있고,
+Drive 커넥터는 서버 측이라 셸에서 호출할 수 없습니다. 그래서 **커밋된 이미지는 브랜드 플레이트**입니다.
 
-```bash
-bash tools/import-drive-photos.sh
+**대신 Netlify 빌드 단계에서 원본을 직접 받아옵니다.** Netlify 빌드 환경은 인터넷이 열려 있습니다.
+
+```toml
+[build]
+  command = "bash tools/netlify-build.sh"
 ```
 
-동작: 드라이브 폴더 → `tools/raw/` 다운로드 → 슬롯 비율로 중앙 크롭 →
-WebP 30KB 이하로 압축 → `img/` 에 같은 이름으로 덮어쓰기.
+`tools/netlify-build.sh` 가 배포마다 하는 일:
 
-어떤 사진을 어느 자리에 넣을지는 `tools/make_images.py` 의 `SLOTS` 순서로 조정합니다.
-파일명과 `alt` 텍스트에는 이미 지역·서비스 키워드가 들어가 있습니다.
+1. `gdown` 으로 드라이브 폴더 → `tools/raw/` 다운로드
+2. `tools/make_images.py` 로 21개 슬롯에 크롭 + WebP 30KB 이하 압축
+3. `_build/build.py` 로 HTML 재생성
+
+즉 **배포하면 사이트에는 실제 현장사진이 올라갑니다.** HTML은 손댈 필요 없습니다.
+
+> ⚠️ 드라이브 폴더가 **'링크가 있는 모든 사용자'** 로 공개돼 있어야 `gdown` 이 받습니다.
+> 비공개면 빌드는 실패하지 않고 커밋된 플레이트를 그대로 씁니다(로그에 경고).
+> 배포 후 이미지가 안 바뀌면 Netlify 빌드 로그의 `▶ 2/3` 줄을 확인하세요.
+
+로컬에서 미리 확인하려면:
+
+```bash
+bash tools/import-drive-photos.sh   # 차단 없는 PC에서
+```
+
+사진을 다른 자리에 넣고 싶으면 `tools/make_images.py` 의 `SLOT_ORDER` 순서를 바꾸면 됩니다.
+파일명과 `alt` 에는 이미 지역·서비스 키워드가 들어가 있습니다.
+
+---
+
+## 6-b. 색인 등록
+
+사이트맵·RSS·robots·IndexNow 를 모두 내보냅니다. 제출 절차는 **[INDEXING.md](INDEXING.md)** 참고.
+
+| 파일 | 용도 |
+|---|---|
+| `sitemap.xml` → `sitemap-core.xml` / `sitemap-area.xml` | 이미지 확장 포함 |
+| `rss.xml` (248항목) | 네이버 서치어드바이저 RSS 제출용 |
+| `robots.txt` | Googlebot·Yeti·NaverBot·Daumoa·bingbot 개별 허용, 크롤 지연 없음 |
+| `<INDEXNOW_KEY>.txt` | IndexNow 소유 확인 |
+
+```bash
+python3 tools/indexnow.py    # Bing·Naver·Yandex 에 248개 URL 즉시 통보
+```
+
+소유권 확인 메타태그는 `config.py` 의 `GOOGLE_VERIFY` / `NAVER_VERIFY` /
+`BING_VERIFY` / `DAUM_VERIFY` 에 값을 넣으면 자동 삽입됩니다(빈 값이면 태그 자체가 안 나갑니다).
+
+> 구글 sitemap ping 엔드포인트는 2023년 폐지됐습니다. 이 저장소는 쓰지 않습니다.
 
 ---
 

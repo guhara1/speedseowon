@@ -615,6 +615,40 @@ section{padding-block:clamp(56px,7vw,104px)}
 .bg-ink .topic li a{color:var(--on-dark-2)}
 .bg-ink .topic li a:hover{background:rgba(255,255,255,.06);color:var(--cyan-bright)}
 
+/* ------------------------------------------------ 14-c. 현장사진 갤러리 */
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s4)}
+.gallery figure{
+  position:relative;margin:0;border-radius:var(--r-lg);overflow:hidden;
+  border:var(--hair);background:var(--ink-700);box-shadow:var(--e1);
+  transition:transform .22s var(--ease),box-shadow .22s var(--ease);
+}
+.gallery figure:hover{transform:translateY(-3px);box-shadow:var(--e3)}
+.gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;
+             transition:transform .5s var(--ease)}
+.gallery figure:hover img{transform:scale(1.05)}
+.gallery figcaption{
+  position:absolute;inset-inline:0;bottom:0;padding:30px 16px 13px;
+  background:linear-gradient(transparent,rgba(6,15,26,.92));
+  color:var(--on-dark-2);font-size:13.5px;line-height:1.55;letter-spacing:-.015em;
+}
+.gallery figcaption b{display:block;color:var(--white);font-size:14.5px;
+                      font-weight:700;margin-bottom:2px}
+.gallery .tag{
+  position:absolute;left:11px;top:11px;z-index:2;font-family:var(--mono);
+  font-size:10px;letter-spacing:.12em;background:rgba(6,15,26,.82);color:var(--amber);
+  padding:4px 9px;border-radius:4px;
+}
+.gal-note{margin-top:16px;font-size:13.5px;color:var(--gray-600)}
+.bg-ink .gal-note{color:var(--on-dark-3)}
+
+/* 본문 사이 인용형 단일 사진 */
+.figure-wide{margin:var(--s6) 0;border-radius:var(--r-lg);overflow:hidden;
+             border:var(--hair);box-shadow:var(--e2);background:var(--ink-700)}
+.figure-wide img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
+.figure-wide figcaption{padding:14px 18px;font-size:14px;color:var(--gray-700);
+                        background:var(--white);border-top:var(--hair)}
+.figure-wide figcaption b{color:var(--ink-800)}
+
 /* 후기 */
 .rating-bar{
   display:flex;align-items:center;gap:var(--s5);flex-wrap:wrap;
@@ -697,7 +731,7 @@ section{padding-block:clamp(56px,7vw,104px)}
 /* -------------------------------------------------------- 16. 반응형 */
 @media(max-width:1180px){
   .mega-grid{grid-template-columns:repeat(2,1fr)}
-  .g4,.sym,.stat-row,.topics{grid-template-columns:repeat(2,1fr)}
+  .g4,.sym,.stat-row,.topics,.gallery{grid-template-columns:repeat(2,1fr)}
   .flow{grid-template-columns:repeat(3,1fr)}
   .ft-grid{grid-template-columns:1fr 1fr 1fr}
 }
@@ -731,7 +765,7 @@ section{padding-block:clamp(56px,7vw,104px)}
   .mega-grid{grid-template-columns:1fr;padding:6px 20px 10px;gap:0}
   .hd-call b{font-size:16px}
   .hd-call{padding:8px 13px}
-  .g2,.g3,.g4,.sym,.author,.aside,.topics{grid-template-columns:1fr}
+  .g2,.g3,.g4,.sym,.author,.aside,.topics,.gallery{grid-template-columns:1fr}
   .rating-bar{gap:var(--s4)}
   .author{gap:var(--s5);padding:24px}
   .author img{max-width:150px}

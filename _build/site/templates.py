@@ -4,7 +4,17 @@ import json
 
 from config import (SITE, BRAND, OWNER, PHONE, PHONE_TEL, PHONE_E164, EMAIL,
                     BIZ_NO, LICENSE_NO, ADDRESS, IMAGES, REVIEWED,
-                    STAT_TOTAL_CASES, STAT_SIGUNGU)
+                    STAT_TOTAL_CASES, STAT_SIGUNGU, RSS_TITLE,
+                    GOOGLE_VERIFY, NAVER_VERIFY, BING_VERIFY, DAUM_VERIFY)
+
+
+def verify_tags():
+    """소유권 확인 메타태그 — 값이 있을 때만 출력합니다."""
+    pairs = [("google-site-verification", GOOGLE_VERIFY),
+             ("naver-site-verification", NAVER_VERIFY),
+             ("msvalidate.01", BING_VERIFY),
+             ("daum-site-verification", DAUM_VERIFY)]
+    return "".join(f'<meta name="{k}" content="{v}">\n' for k, v in pairs if v)
 
 
 def img_tag(key, cls="", sizes=None, priority=False, alt=None):
@@ -28,7 +38,8 @@ def business_ld(rating=None):
         "@context": "https://schema.org", "@type": "Plumber",
         "@id": f"{SITE}/#business", "name": BRAND,
         "url": SITE + "/", "logo": f"{SITE}/img/{IMAGES['author'][0]}",
-        "image": [f"{SITE}/img/{IMAGES['og'][0]}", f"{SITE}/img/{IMAGES['hero'][0]}"],
+        "image": [f"{SITE}/img/{IMAGES['og'][0]}"]
+                 + [f"{SITE}/img/{IMAGES[k][0]}" for k in ("hero1", "hero2", "case1")],
         "description": "전국 24시간 배관공사·하수구막힘·누수탐지 전문. 내시경 관로조사 기반 원인 진단과 고압세척 시공.",
         "telephone": PHONE_E164, "priceRange": "₩₩", "foundingDate": "2011-04-01",
         "address": {"@type": "PostalAddress", "streetAddress": "○○로 00, 3층",
@@ -57,9 +68,14 @@ def head(title, desc, canonical, extra_ld=None, og_image=None, robots=None):
 <title>{title}</title>
 <meta name="description" content="{desc}">
 <link rel="canonical" href="{canonical}">
-<meta name="robots" content="{robots or 'index,follow,max-image-preview:large,max-snippet:-1'}">
+<meta name="robots" content="{robots or 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'}">
+<meta name="googlebot" content="{robots or 'index,follow,max-image-preview:large,max-snippet:-1'}">
+<meta name="NaverBot" content="All">
+<meta name="Yeti" content="All">
 <meta name="author" content="{OWNER} · {BRAND} 대표 / 배관기능사">
 <meta name="theme-color" content="#0A1929">
+{verify_tags()}<link rel="alternate" type="application/rss+xml" title="{RSS_TITLE}" href="{SITE}/rss.xml">
+<link rel="sitemap" type="application/xml" href="{SITE}/sitemap.xml">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{BRAND}">
 <meta property="og:locale" content="ko_KR">

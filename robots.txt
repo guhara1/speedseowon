@@ -1,7 +1,32 @@
+# 스피드서원 — https://speedseowon.netlify.app
+# 검색엔진별로 따로 적은 이유: 네이버 Yeti 는 크롤 지연을 명시하면 그대로 따릅니다.
+# 지연을 주면 229개 지역 페이지 수집이 며칠씩 늦어져 일부러 넣지 않았습니다.
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Yeti
+Allow: /
+
+User-agent: NaverBot
+Allow: /
+
+User-agent: Daumoa
+Allow: /
+
+User-agent: bingbot
+Allow: /
+
 User-agent: *
 Allow: /
 Disallow: /search/
 Disallow: /*?
 Disallow: /_build/
+Disallow: /tools/
 
 Sitemap: https://speedseowon.netlify.app/sitemap.xml
+Sitemap: https://speedseowon.netlify.app/sitemap-core.xml
+Sitemap: https://speedseowon.netlify.app/sitemap-area.xml

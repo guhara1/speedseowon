@@ -3,9 +3,13 @@
 
 [build]
   publish = "."
-  command = ""
+  # 빌드 중에 구글드라이브 현장사진을 받아 img/*.webp 로 굽고 HTML을 다시 생성합니다.
+  # (샌드박스에서 drive.google.com 이 막혀도 배포본에는 실제 사진이 들어갑니다)
+  command = "bash tools/netlify-build.sh"
 
-# /area/seoul/gangnam 로 들어와도 /area/seoul/gangnam/ 과 같은 페이지를 봅니다.
+[build.environment]
+  PYTHON_VERSION = "3.11"
+
 [build.processing]
   skip_processing = true
 
