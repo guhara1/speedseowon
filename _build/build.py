@@ -1394,6 +1394,7 @@ Disallow: /tools/
 Sitemap: {SITE}/sitemap.xml
 Sitemap: {SITE}/sitemap-core.xml
 Sitemap: {SITE}/sitemap-area.xml
+Sitemap: {SITE}/sitemap-dong.xml
 """)
 
 
