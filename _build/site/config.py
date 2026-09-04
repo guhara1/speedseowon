@@ -4,9 +4,9 @@
 SITE = "https://speedseowon.netlify.app"
 BRAND = "스피드서원"
 OWNER = "서원배"
-PHONE = "010-5183-4300"
-PHONE_TEL = "01051834300"
-PHONE_E164 = "+82-10-5183-4300"
+PHONE = "0508-4260-3312"
+PHONE_TEL = "050842603312"
+PHONE_E164 = "+82-508-4260-3312"
 EMAIL = "help@speedseowon.co.kr"
 BIZ_NO = "000-00-00000"          # TODO 실제 사업자등록번호
 LICENSE_NO = "제0000호"           # TODO 실제 기계설비공사업 등록번호
